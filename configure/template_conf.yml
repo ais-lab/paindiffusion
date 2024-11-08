@@ -1,0 +1,96 @@
+MODEL:
+  dim: 32
+  type: video
+  dropout: 0
+  channels: 4 # frame stack
+  dim_mults:
+    - 1
+    - 2
+    - 4
+    - 8
+  attn_heads: 4
+  context_dim: 128
+  attn_dim_head: 32
+  self_condition: false
+  context_channels: 12 # number_condition * frame stack
+  learned_variance: false
+  sinusoidal_pos_emb_theta: 10000
+
+DIFFUSION:
+  ctrl_key: ctrl
+  data_key: x
+  img_size: 11
+  loss_type: L1
+  self_cond: false
+  ode_solver: dpm++
+  time_delta: 0.1
+  frame_stack: 4
+  sample_steps: 35
+  warmup_steps: 1000
+  sample_output_dir: "/media/tien/SSD-NOT-OS/pain_intermediate_data/output_video/16_32dim_lossweight_wholeloss_randomsmalltrain_plateulr/sample"
+  # checkpoint_dir: "/media/tien/SSD-NOT-OS/pain_intermediate_data/output/try_7"
+  drop_probs:
+    - 0.1 # emotion
+    - 0.1 # spsi
+    - 0.1 # temperature
+  guide:
+    - 1.0 # emotion
+    - 1.0 # spsi
+    - 1.0 # temperature
+
+DATASET:
+  path_to_frame_labels: "/media/tien/SSD-NOT-OS/pain_intermediate_data/processed_pain_data_no_facedetector/"
+  path_to_video_frame: "/media/tien/SSD-DATA/data/BioVid HeatPain DB/PartC/extracted_frame/"
+  path_to_3d_latents: "/media/tien/SSD-NOT-OS/pain_intermediate_data/emoca_latent_code/"
+  max_length: 64 # TODO: disentangle the max_length of frame and condition, condition should be longer?
+  test_max_length: 640
+  img_size: 256
+  load_au_features: False
+  load_emotion_labels: True
+  load_stimulus_values: True
+  load_stimulus_label: True
+  load_pspi_no_au43: True
+  load_3d_latents: True
+  load_frame: False
+  batch_size: 10
+  num_workers: 26
+  train_shuffle : True
+  val_shuffle   : False
+  val_batch_size : 1
+  test_batch_size : 1
+  is_video: True
+
+DATA_STATS:
+  emotion:
+    std: 1.3559
+    mean: 4.6183
+  stimulus_abs:
+    std: 7.0676
+    mean: 37.2281
+  expressiveness:
+    std: 0.674
+    mean: 8.33
+
+
+OPTIMIZER:
+  lr: 4.0e-4
+  # betas: [0.9, 0.999]
+  # eps: 1e-8
+  # weight_decay: 0.0
+  red_plateau:
+    factor: 0.75
+    patience: 3
+    min_lr: 1.0e-6
+    interval: 'epoch'
+    frequency: 1
+    monitor: "val_loss"
+
+CHECKPOINT: "/media/tien/SSD-NOT-OS/pain_intermediate_data/output_video/16_32dim_lossweight_wholeloss_randomsmalltrain_plateulr/checkpoint"
+
+CODEBACKUP: "/media/tien/SSD-NOT-OS/pain_intermediate_data/output_video/15_32dim_lossweight_wholeloss_randomsmalltrain/code"
+
+RUN_NAME: "16_32dim_lossweight_wholeloss_randomsmalltrain_plateulr"
+
+TRAIN: True
+VALIDATE: False
+TEST: True

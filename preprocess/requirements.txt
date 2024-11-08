@@ -1,0 +1,9 @@
+# facetorch
+opencv-python
+
+hsemotion
+batch-face
+
+einops
+
+megraphau

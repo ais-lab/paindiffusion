@@ -1,0 +1,86 @@
+BEST_CKPT: /media/tien/SSD-NOT-OS/pain_intermediate_data/experiment/scale_jawpose/checkpoint/elucidated_diffusion-epoch=27-val_loss=0.26.ckpt
+CHECKPOINT: /media/tien/SSD-NOT-OS/pain_intermediate_data/experiment/scale_jawpose/checkpoint
+CODEBACKUP: /media/tien/SSD-NOT-OS/pain_intermediate_data/experiment/scale_jawpose/code
+DATASET:
+  batch_size: 10
+  img_size: 256
+  is_video: true
+  load_3d_latents: true
+  load_au_features: false
+  load_emotion_labels: true
+  load_frame: false
+  load_pspi_no_au43: true
+  load_stimulus_label: true
+  load_stimulus_values: true
+  max_length: 64
+  num_workers: 26
+  path_to_3d_latents: /media/tien/SSD-NOT-OS/pain_intermediate_data/emoca_latent_code/
+  path_to_frame_labels: /media/tien/SSD-NOT-OS/pain_intermediate_data/processed_pain_data_no_facedetector/
+  path_to_video_frame: /media/tien/SSD-DATA/data/BioVid HeatPain DB/PartC/extracted_frame/
+  test_batch_size: 1
+  test_max_length: 640
+  train_shuffle: true
+  val_batch_size: 1
+  val_shuffle: false
+DATA_STATS:
+  emotion:
+    mean: 4.6183
+    std: 1.3559
+  expressiveness:
+    mean: 8.33
+    std: 0.674
+  stimulus_abs:
+    mean: 37.2281
+    std: 7.0676
+DIFFUSION:
+  ctrl_key: ctrl
+  data_key: x
+  drop_probs:
+  - 0.1
+  - 0.1
+  - 0.1
+  frame_stack: 4
+  guide:
+  - 1
+  - 1
+  - 1
+  img_size: 11
+  loss_type: L1
+  ode_solver: dpm++
+  sample_output_dir: /media/tien/SSD-NOT-OS/pain_intermediate_data/experiment/scale_jawpose/sample
+  sample_steps: 35
+  self_cond: false
+  time_delta: 0.1
+  warmup_steps: 1000
+  context_size: 4
+LAST_CKPT: /media/tien/SSD-NOT-OS/pain_intermediate_data/experiment/scale_jawpose/checkpoint/last.ckpt
+MODEL:
+  attn_dim_head: 32
+  attn_heads: 4
+  channels: 4
+  context_channels: 12
+  context_dim: 128
+  dim: 32
+  dim_mults:
+  - 1
+  - 2
+  - 4
+  - 8
+  dropout: 0
+  learned_variance: false
+  self_condition: false
+  sinusoidal_pos_emb_theta: 10000
+  type: video
+OPTIMIZER:
+  lr: 0.0004
+  red_plateau:
+    factor: 0.75
+    frequency: 1
+    interval: epoch
+    min_lr: 1.0e-06
+    monitor: val_loss
+    patience: 3
+RUN_NAME: scale_jawpose
+TEST: true
+TRAIN: true
+VALIDATE: false
