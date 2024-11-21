@@ -1,6 +1,6 @@
 # PainDiffusion: Can robot express pain?
 
-[Screencast from 11-21-2024 03:40:59 PM.webm](https://github.com/user-attachments/assets/d3b130cf-67a9-4064-8961-3bd4516af658)
+[PainDiffusion Demo Video](https://github.com/user-attachments/assets/d3b130cf-67a9-4064-8961-3bd4516af658)
 
 [Project page](https://damtien444.github.io/paindf/) | [arXiv:2409.11635](https://arxiv.org/pdf/2409.11635)
 
