@@ -1,9 +1,8 @@
 # PainDiffusion: Can robot express pain?
 
-![Flow 1@1x-25fps](https://github.com/user-attachments/assets/41bf9e82-d544-4ee2-b9e5-bfcf2f7abbe8)
+[Screencast from 11-21-2024 03:40:59 PM.webm](https://github.com/user-attachments/assets/d3b130cf-67a9-4064-8961-3bd4516af658)
 
 [Project page](https://damtien444.github.io/paindf/) | [arXiv:2409.11635](https://arxiv.org/pdf/2409.11635)
-
 
 Due to the privacy policies of the Biovid Database, we can only release the checkpoints, training code, and inference code. To save our effort, we are going to release the training code and preprocess code as is for reference purposes. We only test and make sure the inference code is runnable with a Gradio demo. 
 
@@ -54,10 +53,9 @@ pip install -r requirements.txt
 
 5. **Access the demo**: Open [http://127.0.0.1:7860/](http://127.0.0.1:7860/) in your web browser.
 
-[Screencast from 11-21-2024 03:40:59 PM.webm](https://github.com/user-attachments/assets/d3b130cf-67a9-4064-8961-3bd4516af658)
+![Flow 1@1x-25fps](https://github.com/user-attachments/assets/41bf9e82-d544-4ee2-b9e5-bfcf2f7abbe8)
 
-
-# cuda selection to install pytorch3d 
+# Maybe this cuda trick can help you
 
 It's non-trivial to install pytorch3d. I have been stuck at this step many times trying to reproduce the environment. If your system has more than one CUDA version, then use the following set of commands to set your CUDA version that is appropriate for the one used for PyTorch.
 ```bash
