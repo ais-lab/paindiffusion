@@ -34,9 +34,6 @@ pip install -e .
 cd inferno_apps/FaceReconstruction
 bash download_assets.sh
 
-# back to paindiffusion folder and install requirements
-cd ../../..
-pip install -r requirements.txt
 ```
 
 # Run the online demo
