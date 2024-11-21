@@ -54,6 +54,7 @@ pip install -r requirements.txt
 
 5. **Access the demo**: Open [http://127.0.0.1:7860/](http://127.0.0.1:7860/) in your web browser.
 
+[Screencast from 11-21-2024 03:40:59 PM.webm](https://github.com/user-attachments/assets/d3b130cf-67a9-4064-8961-3bd4516af658)
 
 
 # cuda selection to install pytorch3d 
