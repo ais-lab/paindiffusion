@@ -82,6 +82,7 @@ class Diffusion(LightningModule):
         data_key : str = 'smap',
         ctrl_key : Optional[str] = None,
         conf : Optional[Dict] = None,
+        **kwargs
     ) -> None:
         super().__init__()
 

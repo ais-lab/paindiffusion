@@ -1,6 +1,7 @@
 lightning_logs/
-inferno
+inferno_package/
 preprocess/MEGraphAU
+assets/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

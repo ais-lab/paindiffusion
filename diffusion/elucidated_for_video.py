@@ -143,7 +143,7 @@ class ElucidatedDiffusion(Diffusion):
 
         self.warmup_steps = warmup_steps
         self.frame_stack = frame_stack
-        
+
         self.window_size = window_size
         print(f"window size: {window_size}")
         self.context_size = context_size
@@ -178,7 +178,7 @@ class ElucidatedDiffusion(Diffusion):
         self.sample_output_dir = sample_output_dir
 
         self.save_hyperparameters(ignore=['model'])
-        
+
         self.collect_xs = []
 
     @torch.no_grad()
@@ -361,18 +361,17 @@ class ElucidatedDiffusion(Diffusion):
         forward_count = 0
 
         while curr_frame < video_lenght:
-            
+
             # log_xs_pred = []
-            
+
             # xs_pred_backup = xs_pred.clone()
             # # multiple sampling to draw diagram
             for i in range(1):
-                
-            #     xs_pred = xs_pred_backup.clone()
-                
+
+                #     xs_pred = xs_pred_backup.clone()
+
                 xs_pred_this_try = []
-                
-                
+
                 if chunk_size > 0:
                     horizon = min(video_lenght - curr_frame, chunk_size)
                 else:
@@ -382,51 +381,62 @@ class ElucidatedDiffusion(Diffusion):
                 scheduling_matrix = generate_pyramid_scheduling_matrix(horizon, uncertainty_scale=uncertainty_scale, sampling_timesteps=len(timestep)-1).to(self.device)
                 # TODO: remember to roll back to the original scheduling matrix
                 # scheduling_matrix = full_sequence_scheduling_matrix(horizon, sampling_timesteps=len(timestep)-1).to(self.device)
-                
-                chunk = torch.randn((batch_size, horizon, self.frame_stack, latent_dim), 
+
+                xs_pred = self.single_chunk_prediction(ctrl, guide, latent_dim, batch_size, window_size, timestep, max_noise, curr_frame, horizon, scheduling_matrix, xs_pred)
+
+                #     xs_pred_this_try.append(xs_pred[:,start_frame:].clone())
+                # self.collect_xs.append(xs_pred_this_try)
+
+            # torch.save(log_xs_pred, f"sample_distribution_mapping.pt")
+
+            curr_frame += horizon 
+
+        return norm_undo(xs_pred)
+
+    def single_chunk_prediction(self, ctrl, guide, latent_dim, batch_size, window_size, timestep, max_noise, curr_frame, horizon, scheduling_matrix, xs_pred=None,):
+
+        chunk = torch.randn((batch_size, horizon, self.frame_stack, latent_dim), 
                                     device=self.device, 
                                     # dtype=torch.float64
                                     )
-                chunk = chunk * max_noise # this to follow dpmpp to scale noise to largest noise level 
+        chunk = chunk * max_noise # this to follow dpmpp to scale noise to largest noise level 
 
-                if exists(xs_pred):
-                    xs_pred = torch.cat([xs_pred, chunk], dim=1) # cat on time dim
-                else:
-                    # TODO: solve this to have no context
-                    pass
+        if exists(xs_pred):
+            xs_pred = torch.cat([xs_pred, chunk], dim=1) # cat on time dim
+        else:
+            # TODO: solve this to have no context
+            xs_pred = chunk
 
-                start_frame = max(0, curr_frame + horizon - window_size)
+        start_frame = max(0, curr_frame + horizon - window_size)
+        
+        # print(f"curr_frame: {curr_frame}, horizon: {horizon}, window_size: {window_size}, start_frame: {start_frame}")
+        # print(f"xs_pred shape: {xs_pred.shape}")
 
-                for m in range(scheduling_matrix.shape[0]-1):
-                    # add noise level for the context frame as zero as the diffusion forcing proposed  context->[0,0, a,b,c]<-chunk from schedule
+        for m in range(scheduling_matrix.shape[0]-1):
+            # add noise level for the context frame as zero as the diffusion forcing proposed  context->[0,0, a,b,c]<-chunk from schedule
+            if m == 0:
+                past_noise = torch.zeros(scheduling_matrix[m].shape, device=self.device) 
+            else:
+                past_noise = scheduling_matrix[m-1]
 
-                    if m == 0:
-                        past_noise = torch.zeros(scheduling_matrix[m].shape, device=self.device) 
-                    else:
-                        past_noise = scheduling_matrix[m-1]
+            current_noise = scheduling_matrix[m]
 
-                    current_noise = scheduling_matrix[m]
+            if m == scheduling_matrix.shape[0]-2:
+                next_noise = torch.zeros(scheduling_matrix[m].shape, device=self.device)
+            else:
+                next_noise = scheduling_matrix[m+1]
 
-                    if m == scheduling_matrix.shape[0]-2:
-                        next_noise = torch.zeros(scheduling_matrix[m].shape, device=self.device)
-                    else:
-                        next_noise = scheduling_matrix[m+1]
-
-                    past_noise, current_noise, next_noise = map(
+            past_noise, current_noise, next_noise = map(
                         lambda x: torch.cat([torch.zeros((curr_frame,), device=self.device), x], dim=0),
                         (past_noise, current_noise, next_noise)
                     )
 
-                    forward_count+=1
-                    # print(curr_frame)
-                    # print(forward_count)
-
-                    past_noise, current_noise, next_noise = map(
+            past_noise, current_noise, next_noise = map(
                         lambda x: torch.index_select(timestep, 0, x.int()),
                         (past_noise, current_noise, next_noise),
                     )
-
-                    xs_pred[:,start_frame:], _ = self.single_denoise_step_dpmpp(
+            
+            xs_pred[:,start_frame:], _ = self.single_denoise_step_dpmpp(
                         xs_pred[:,start_frame:],
                         (
                             past_noise[start_frame:],
@@ -437,62 +447,71 @@ class ElucidatedDiffusion(Diffusion):
                         guide=guide,
                         scaling=1.
                     )
-                    
-                #     xs_pred_this_try.append(xs_pred[:,start_frame:].clone())
-                # self.collect_xs.append(xs_pred_this_try)
-                
-            # torch.save(log_xs_pred, f"sample_distribution_mapping.pt")
 
-            curr_frame += horizon 
+        return xs_pred
 
-        return norm_undo(xs_pred)
+    def sample_a_chunk(self, ctrl, guide, past_frames=None, scheduling_matrix=None):
+        latent_dim = 128
+        batch_size = 1
+        window_size = self.window_size
+        context_size = self.context_size
+        uncertainty_scale = self.uncertainty_scale
 
-    def _inner_loop(self, past_noise, current_noise, next_noise, timestep, scale, current_ctrl, guide, z_t, z_c, *args, **kwargs):
+        chunk_size = window_size - context_size # how many new time step should be generated
+        horizon = chunk_size if past_frames is not None else window_size
+        
+        num_steps = self.sample_steps
+        norm_undo = self.norm_backward
 
-        _in_loop = max(current_noise - next_noise)
-        _change_noise_ind = torch.where((current_noise - next_noise) > 0)[0]
+        # window_size: int=16, context_size: int=4, clean_horizon_size: int=2
+        timestep = self.get_timesteps(num_steps)
+        timestep = timestep.flip(0)
+        max_noise = torch.index_select(timestep, 0, torch.tensor(num_steps - 1, device=self.device))
+        
+        scheduling_matrix = generate_pyramid_scheduling_matrix(horizon, uncertainty_scale=4, sampling_timesteps=len(timestep)-1).to(self.device)
+        # scheduling_matrix = full_sequence_scheduling_matrix(horizon, sampling_timesteps=len(timestep)-1).to(self.device)
 
-        _past_noise = repeat(past_noise, 'l -> i l', i = _in_loop).contiguous()
-        _current_noise = repeat(current_noise, 'l -> i l', i = _in_loop).contiguous()
-        _next_noise = repeat(next_noise, 'l -> i l', i = _in_loop).contiguous()
+        for idx, cond in enumerate(ctrl):
+            if len(cond.shape) != 2:
+                continue
+            
+            # print(cond.shape)
+            ctrl[idx] = rearrange(cond, "b (t fs) -> b t fs", fs=self.frame_stack).contiguous()
 
-        for loop_id in range(_in_loop):
-            for ind in _change_noise_ind:
-                if loop_id == 0:
-                    _next_noise[loop_id][ind] = _current_noise[loop_id][ind] - 1
-                    _past_noise[loop_id][ind] = _current_noise[loop_id][ind] + 1 if _current_noise[loop_id][ind] + 1 < len(timestep) else len(timestep) - 1
-                else:
-                    _current_noise[loop_id][ind] = _current_noise[loop_id - 1][ind] - 1
-                    _past_noise[loop_id][ind] = _current_noise[loop_id][ind] + 1
-                    _next_noise[loop_id][ind] = (
-                        next_noise[ind]
-                        if loop_id == _in_loop - 1
-                        else _current_noise[loop_id][ind] - 1
-                    )
+        ctrl = self.ctrl_emb(ctrl, is_training=False) if exists(ctrl) else ctrl
+        
+        if exists(past_frames):
+            past_frames = rearrange(past_frames, "b (t fs) d -> b t fs d", fs=self.frame_stack).contiguous()
+            past_frames[..., :3] *= 100 # scale the jaw pose back to the original scale
+            xs_pred = self.norm_forward(past_frames)
+            xs_pred = xs_pred[:, -context_size:]
+        else:
+            xs_pred = None
 
-        print("past:\n", _past_noise)
-        print(_current_noise)
-        print("next:\n", _next_noise, "\n")
+        imgs = self.single_chunk_prediction(
+            ctrl=ctrl,
+            guide=guide,
+            latent_dim=latent_dim,
+            batch_size=batch_size,
+            window_size=window_size,
+            timestep=timestep,
+            max_noise=max_noise,
+            curr_frame=0 if not exists(past_frames) else context_size,
+            horizon=horizon,
+            scheduling_matrix=scheduling_matrix,
+            xs_pred=xs_pred,
+        )
+        
+        imgs = norm_undo(imgs)
+        
+        imgs[..., :3] /= 100
+        
+        if exists(past_frames):
+            imgs = imgs[:, context_size:]
 
-        for loop_id in range(_in_loop):
+        imgs = rearrange(imgs, "b t fs d -> b (t fs) d").contiguous()
 
-            _inner_past, _inner_current, _inner_next = map(
-                lambda x: torch.index_select(timestep, 0, x), (
-                    _past_noise[loop_id], _current_noise[loop_id], _next_noise[loop_id]
-                )
-            )
-
-            z_t, z_c = self.single_denoise_step_dpmpp(
-                z_t,
-                (_inner_past, _inner_current, _inner_next),
-                scale,
-                ctrl=current_ctrl,
-                guide=guide,
-                x_c=z_c,
-                **kwargs,
-            )
-
-        return z_t, z_c
+        return imgs
 
     def compute_loss(
         self,
@@ -554,7 +573,7 @@ class ElucidatedDiffusion(Diffusion):
 
         # loss_jaw : Tensor = reduce(loss_jaw, 'b t ... -> b', 'mean').contiguous()
         # loss_exp : Tensor = reduce(loss_exp, 'b t ... -> b', 'mean').contiguous()
-        
+
         # having this as mean to the batch work better
         whole_loss : Tensor = reduce(whole_loss, 'b t ... -> b', 'mean').contiguous()
 
@@ -590,7 +609,7 @@ class ElucidatedDiffusion(Diffusion):
 
         if exists(ctrl):
             for idx, cond in enumerate(ctrl):
-                
+
                 if len(cond.shape) != 2:
                     continue
 
@@ -636,7 +655,7 @@ class ElucidatedDiffusion(Diffusion):
             self.drop_probs = [self.drop_probs] * num_controll
         else:
             assert len(self.drop_probs) == num_controll, "The length of drop_prob should be equal to the number of control signal"
-            
+
         if len(ctrl) == 4: # control_emotion, pain_expressiveness, stimulus_abs, pspi_no_au43 (pspi was added for evaluation)
             # drop the pspi_no_au43
             ctrl = ctrl[:-1]
@@ -668,18 +687,16 @@ class ElucidatedDiffusion(Diffusion):
         self.val_outs = batch
 
         return x_0, ctrl
-    
+
     def test_step(self, batch, batch_idx):
-        
-        
+
         if batch_idx > 200:
-            
+
             if not os.path.exists("sample_distribution_mapping.pt"):            
                 torch.save(self.collect_xs, f"sample_distribution_mapping.pt")
             pass
         else:
             self.sample_imgs(batch, namespace="test", batch_idx=batch_idx)
-        
 
     @torch.no_grad()
     def on_validation_epoch_end(self, 
@@ -699,18 +716,18 @@ class ElucidatedDiffusion(Diffusion):
 
         batch = self.val_outs
         self.sample_imgs(batch)
-        
+
         # os.system('/home/tien/miniconda3/envs/work39_torch2/bin/python /home/tien/inferno/render_from_exp.py --input_path "/media/tien/SSD-NOT-OS/pain_intermediate_data/output_video/10_32dim_lossweight_ema_splitloss/sample/*_with_ctrl.pt" --output_dir "/media/tien/SSD-NOT-OS/pain_intermediate_data/output_video/10_32dim_lossweight_ema_splitloss/sample/" --video_render true')
 
     @torch.no_grad() 
     def sample_imgs(self, batch, namespace='val', batch_idx=0, save=True):
-        
+
         print(batch['x'].shape)
-        
+
         self.count_forward = 0
-        
+
         x_0, ctrl, *_ = self.prepare_batch(batch)
-        
+
         # Produce 8 samples and log them
         imgs = self(
                 x_0,
@@ -726,7 +743,7 @@ class ElucidatedDiffusion(Diffusion):
             current_step = self.trainer.global_step
         except:
             current_step = 0
-        
+
         # unscale jaw pose refer to utils/biovid.py latent jaw pose that scale it by multiply 100
         # so we need to scale it back to the original scale
         imgs[..., :3] /= 100
@@ -742,18 +759,18 @@ class ElucidatedDiffusion(Diffusion):
             # "end_frame_id":batch['end_frame_id'],
             # 'video_name':batch['video_name'],
         }
-        
+
         print("num forward:", self.count_forward)
 
         if save:
             torch.save(saved_objects, f"{self.sample_output_dir}/{current_step}_{batch_idx}_{namespace}_with_ctrl.pt")
             print(f"Saved the output at {self.sample_output_dir}/{current_step}_{batch_idx}_{namespace}_with_ctrl.pt")
-        
+
         return saved_objects
 
     def configure_optimizers(self) -> None:
         optim_conf = self.conf['OPTIMIZER']
-        
+
         red_plateau_conf: Dict = optim_conf.pop('red_plateau')
 
         # Initialize the optimizer
@@ -761,7 +778,7 @@ class ElucidatedDiffusion(Diffusion):
             self.parameters(), 
             **optim_conf,   
         )
-        
+
         red_plateau = torch.optim.lr_scheduler.ReduceLROnPlateau(
             optim, factor=red_plateau_conf.get('factor', 0.5), patience=red_plateau_conf.get('patience', 3), min_lr=red_plateau_conf.get('min_lr', 4e-5), verbose=True
         )
@@ -772,7 +789,7 @@ class ElucidatedDiffusion(Diffusion):
             "frequency": red_plateau_conf.get('frequency', 1),
             "monitor": red_plateau_conf.get('monitor', 'val_loss'),
         }
-        
+
         return ([optim], [lr_scheduler])
 
     # * Functions that define what model actually predicts
@@ -886,7 +903,7 @@ class ElucidatedDiffusion(Diffusion):
         guide : Union[float, list]=1.,
         x_c : Optional[Tensor] = None,
         ):
-        
+
         self.count_forward = self.count_forward + 1
 
         sigm1, sig, sigp1 = past_current_next_noise # past, current, next noise level

@@ -15,22 +15,23 @@ There might be problems with installing pytorch3d, which may come from mismatche
 
 ```bash
 
-git clone https://github.com/damtien444/inferno 
-cd inferno/
-bash pull_submodules.sh
-
 conda create python=3.10 -n paindiff 
 conda activate paindiff
 
-# Install pytorch and pytorch3d
+# Install environment and pytorch3d
 # please be mindful that the cuda version should be matched for pytorch and your current cuda system, https://pytorch.org/get-started/locally/
-pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
+
+pip install -r requirements.txt
+
 FORCE_CUDA=1 pip install git+https://github.com/facebookresearch/pytorch3d.git@stable
-conda env update --name paindiff --file conda-environment_py39_cu12_torch2.yaml
+
+git clone https://github.com/damtien444/inferno inferno_package
+cd inferno_package/
+bash pull_submodules.sh
 
 pip install -e .
 
-# Download the pretrained EMOCA
+# Download the pretrainpaindiffed EMOCA
 cd inferno_apps/FaceReconstruction
 bash download_assets.sh
 
@@ -39,6 +40,31 @@ cd ../../..
 pip install -r requirements.txt
 ```
 
+# Run the online demo
+
+
+1. **Download the model checkpoint**: [Download Link](https://drive.google.com/file/d/1sh7JdYWcz-Z-pc30mWtl7TOKxzHwz80V/view?usp=sharing).
+2. **Place the checkpoint**: Put the downloaded checkpoint in a location of your choice.
+3. **Update configuration**: Edit `configure/sample_config.yml` and set the `BEST_CKPT` path to the location of your checkpoint.
+4. **Run the demo**:
+
+   ```bash
+   python online_run.py
+   ```
+
+5. **Access the demo**: Open [http://127.0.0.1:7860/](http://127.0.0.1:7860/) in your web browser.
+
+
+
+# cuda selection to install pytorch3d 
+
+It's non-trivial to install pytorch3d. I have been stuck at this step many times trying to reproduce the environment. If your system has more than one CUDA version, then use the following set of commands to set your CUDA version that is appropriate for the one used for PyTorch.
+```bash
+set -x CUDA_HOME /usr/local/cuda-{cuda_version}
+set -x CUDA_PATH $CUDA_HOME
+set -x PATH $CUDA_HOME/bin $PATH
+set -x LD_LIBRARY_PATH $CUDA_HOME/lib64 $LD_LIBRARY_PATH
+```
 
 
 ## Thanks

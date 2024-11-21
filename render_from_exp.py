@@ -53,7 +53,6 @@ def build_the_batch(face_shape_path, prediction_tensor):
     # expression = rearrange(expression, "b t d -> b t d")
     
     b, t = expression.shape[0], expression.shape[1]
-    print(b, t)
     
     jaw_pose = expression_and_jawpose[:, :, :3]
     # jaw_pose = reduce(jaw_pose, "b c d -> b d", "mean")
@@ -84,11 +83,12 @@ def build_the_batch(face_shape_path, prediction_tensor):
     return batch
 
 
-def decode_latent_to_image(face_shape_path, prediction_tensor_path, model, output_folder, name, render=False):
+def decode_latent_to_image(face_shape_path, prediction_tensor_path, model=face_rec_model, output_folder=None, name=None, render=False, save_frame=True):
     big_batch = build_the_batch(face_shape_path, prediction_tensor_path)
     
     prediction_batch_size = big_batch.pop('batch', 1)
     # print(prediction_batch_size)
+    imgs = []
     
     for batch_idx in range(0, prediction_batch_size):
     
@@ -101,14 +101,17 @@ def decode_latent_to_image(face_shape_path, prediction_tensor_path, model, outpu
             visdict = face_rec_model.visualize_batch(batch, 0, None, in_batch_idx=None)
 
             current_bs = batch["expcode"].shape[0]
-            imgs = []
+            
             for j in range(current_bs):
                 
-                os.makedirs(os.path.join(output_dir, basename.split(".")[0], str(batch_idx)), exist_ok=True)
-                
                 img = visdict['shape_image'][j]
-
-                imsave(os.path.join(output_dir, basename.split(".")[0],str(batch_idx), f"{frame_idx + j}.jpg"), img)
+                
+                imgs.append(img)
+                
+                if save_frame:
+                    os.makedirs(os.path.join(output_dir, basename.split(".")[0], str(batch_idx)), exist_ok=True)
+                    
+                    imsave(os.path.join(output_dir, basename.split(".")[0],str(batch_idx), f"{frame_idx + j}.jpg"), img)
         
         if render:
             os.system(f"ffmpeg -r 25 -i  {output_dir}/{basename.split('.')[0]}/{str(batch_idx)}/%d.jpg  -vcodec h264 -b:v 10M -y {output_dir}/{basename.split('.')[0]}/{str(batch_idx)}.mp4")
