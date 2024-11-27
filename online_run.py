@@ -58,7 +58,8 @@ stop_threads_flag = False
 
 scheduling_matrix = None
 
-sr = 40  # Sampling rate in Hz
+sr = 30  # Sampling rate in Hz
+generate_fps = 30  # Frame generation rate in Hz
 window_size = 64
 
 def stimuli_sampling_loop():
@@ -74,22 +75,22 @@ def stimuli_sampling_loop():
 
 def model_loop():
     global stop_threads_flag
+    
+    target_interval = 1.0 / generate_fps
+    
     while not stop_threads_flag:
-        # Consume stimuli values from stimuli_queue
         stimuli_values = list(stimuli_queue)
-        # print(f"Model loop: {[stimuli['pain_stimuli'] for stimuli in stimuli_values]}")
-        # Generate frames using stimuli_values
+
         start = time.time()
         frames = generate_frames(stimuli_values)
-        
-        # print("generated {} frames".format(len(frames)))
-        
         prediction_time = time.time() - start 
-        # Calculate per-frame interval
-        frame_interval = prediction_time / len(frames)
-        # Put frames and intervals into frame_queue
         
-        print("FPS: ", 1/frame_interval)
+        frame_interval = prediction_time / len(frames)
+        
+        # cap the prediction rate to 30fps by sleeping
+        if frame_interval < target_interval:
+            time.sleep((target_interval - frame_interval)*len(frames))
+            frame_interval = target_interval
         
         for frame in frames:
             frame_queue.append((frame, frame_interval))
