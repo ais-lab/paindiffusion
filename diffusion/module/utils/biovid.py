@@ -4,6 +4,8 @@ import random
 import shutil
 
 # import pandas as pd
+import numpy as np
+import scipy
 import torch
 from torch.nn import functional as F
 from torch.utils.data import DataLoader, Dataset
@@ -20,6 +22,27 @@ def default(var, val ):
 
 temp_dir = "/media/tien/SSD-NOT-OS/pain_intermediate_data/temp_video"
 # shutil.rmtree(temp_dir, ignore_errors=True)
+
+def savitzky_golay(original_data, window_length=10, polyorder=2):
+    """
+    Savitzky-Golay filter for smoothing
+    Preserves higher moments of the signal
+    
+    Parameters:
+    - window_length: Length of the filter window
+    - polyorder: Order of the polynomial used for fitting
+    
+    Returns:
+    - Smoothed data with same shape as input
+    """
+    smoothed = np.zeros_like(original_data)
+    for i in range(original_data.shape[1]):
+        smoothed[:, i] = scipy.signal.savgol_filter(
+            original_data[:, i], 
+            window_length=window_length, 
+            polyorder=polyorder
+        )
+    return smoothed
 
 class BioVidDataset(Dataset):
 
@@ -95,6 +118,7 @@ class BioVidDataset(Dataset):
         load_frame: bool = False,
         split: str = "train",
         is_video: bool = False,
+        smooth_latent: bool = False,
     ):
 
         self.path_to_3d_latents = path_to_3d_latents
@@ -110,6 +134,8 @@ class BioVidDataset(Dataset):
         self.load_pspi_no_au43 = load_pspi_no_au43
         self.load_3d_latents = load_3d_latents
         self.load_frame = load_frame
+        
+        self.smooth_latent = smooth_latent
 
         self.video_chunks = []
         self.max_length = max_length
@@ -180,7 +206,7 @@ class BioVidDataset(Dataset):
                     random_start = random.randint(0, 9)
                     
                     chunk_start_pointer = change_state_frame[0] - int(100*(1/4)) + random_start
-                    chunk_end_pointer = change_state_frame[0] + int(100*(3/4)) + random_start
+                    chunk_end_pointer = change_state_frame[0] + int(200*(3/4)) + random_start
                     
                     if chunk_start_pointer < 1:
                         chunk_start_pointer = 1
@@ -349,6 +375,10 @@ class BioVidDataset(Dataset):
             
         if len(latent_3d) > 0:
             latent_3d = torch.stack(latent_3d)
+            
+            if self.smooth_latent:
+                latent_3d = savitzky_golay(latent_3d)
+                latent_3d = torch.tensor(latent_3d)
                     
         desire_dim = 128 # NOTE: parameterize this later
         
@@ -412,6 +442,7 @@ class BioVidDM(AbstractDM):
         load_3d_latents: bool = True,
         load_frame: bool = False,
         is_video: bool = False,
+        smooth_latent: bool = False,
         **kwargs,
     ):
         super().__init__(**kwargs)
@@ -430,6 +461,7 @@ class BioVidDM(AbstractDM):
         self.load_frame = load_frame
         self.is_video = is_video
         self.test_max_length = test_max_length
+        self.smooth_latent = smooth_latent
         self.val_max_length = default(val_max_length, test_max_length)
 
     def setup(self, stage: str):
@@ -448,6 +480,7 @@ class BioVidDM(AbstractDM):
             load_frame=self.load_frame,
             split="train",
             is_video=self.is_video,
+            smooth_latent=self.smooth_latent,
         )
 
         biovid_val = BioVidDataset(
@@ -465,6 +498,7 @@ class BioVidDM(AbstractDM):
             load_frame=self.load_frame,
             split="val",
             is_video=self.is_video,
+            smooth_latent=self.smooth_latent,
         )
         
         biovid_test = BioVidDataset(
@@ -482,6 +516,7 @@ class BioVidDM(AbstractDM):
             load_frame=self.load_frame,
             split="val",
             is_video=self.is_video,
+            smooth_latent=self.smooth_latent,
         )
 
         if stage == "fit" or stage=="validate" or stage is None:

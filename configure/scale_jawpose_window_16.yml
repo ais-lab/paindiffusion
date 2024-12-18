@@ -1,6 +1,6 @@
-BEST_CKPT: /media/tien/SSD-NOT-OS/pain_intermediate_data/experiment/scale_jawpose/checkpoint/elucidated_diffusion-epoch=27-val_loss=0.26.ckpt
-CHECKPOINT: /media/tien/SSD-NOT-OS/pain_intermediate_data/experiment/scale_jawpose/checkpoint
-CODEBACKUP: /media/tien/SSD-NOT-OS/pain_intermediate_data/experiment/scale_jawpose/code
+BEST_CKPT: "/media/tien/SSD-NOT-OS/pain_intermediate_data/experiment/scale_jawpose_window16/checkpoint/elucidated_diffusion-epoch=40-val_loss=0.24.ckpt"
+CHECKPOINT: /media/tien/SSD-NOT-OS/pain_intermediate_data/experiment/scale_jawpose_window16/checkpoint
+CODEBACKUP: /media/tien/SSD-NOT-OS/pain_intermediate_data/experiment/scale_jawpose_window16/code
 DATASET:
   batch_size: 10
   img_size: 256
@@ -12,7 +12,7 @@ DATASET:
   load_pspi_no_au43: true
   load_stimulus_label: true
   load_stimulus_values: true
-  max_length: 64
+  max_length: 16
   num_workers: 26
   path_to_3d_latents: /media/tien/SSD-NOT-OS/pain_intermediate_data/emoca_latent_code/
   path_to_frame_labels: /media/tien/SSD-NOT-OS/pain_intermediate_data/processed_pain_data_no_facedetector/
@@ -39,27 +39,26 @@ DIFFUSION:
   - 0.1
   - 0.1
   - 0.1
-  frame_stack: 4
+  frame_stack: 2
   guide:
-  - 0.25
-  - 0.5
+  - 1.0
+  - 1.0
   - 1.0
   img_size: 11
   loss_type: L1
   ode_solver: dpm++
-  sample_output_dir: /media/tien/SSD-NOT-OS/pain_intermediate_data/experiment/scale_jawpose/sample
+  sample_output_dir: /media/tien/SSD-NOT-OS/pain_intermediate_data/experiment/scale_jawpose_window16/sample
   sample_steps: 35
   self_cond: false
   time_delta: 0.1
   warmup_steps: 1000
-  window_size: 16
-  context_size: 4
-LAST_CKPT: /media/tien/SSD-NOT-OS/pain_intermediate_data/experiment/scale_jawpose/checkpoint/last.ckpt
+  window_size: 8
+LAST_CKPT: /media/tien/SSD-NOT-OS/pain_intermediate_data/experiment/scale_jawpose_window16/checkpoint/last.ckpt
 MODEL:
   attn_dim_head: 32
   attn_heads: 4
-  channels: 4
-  context_channels: 12
+  channels: 2
+  context_channels: 6
   context_dim: 128
   dim: 32
   dim_mults:
@@ -81,7 +80,7 @@ OPTIMIZER:
     min_lr: 1.0e-06
     monitor: val_loss
     patience: 3
-RUN_NAME: scale_jawpose
+RUN_NAME: scale_jawpose_window16
 TEST: true
 TRAIN: true
 VALIDATE: false

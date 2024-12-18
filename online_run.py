@@ -31,6 +31,7 @@ def load_model(conf_file) -> ElucidatedDiffusion:
     )
 
     biovid = BioVidDM.from_conf(conf_file)
+    biovid.test_max_length = 64
     trainer.test(model, datamodule=biovid, ckpt_path=best_checkpoint)
 
     model = model.eval()
@@ -38,7 +39,8 @@ def load_model(conf_file) -> ElucidatedDiffusion:
     
     return model
 
-model = load_model("configure/sample_config.yml")
+# model = load_model("configure/sample_config.yml")
+model = load_model("configure/scale_jawpose_window_32.yml")
 default_face = 'default_face/'
 
 # Initialize shared variables
@@ -49,9 +51,6 @@ current_stimuli = {
     'scripted_pain_stimuli': None
 }
 
-frame_queue = deque()
-stimuli_queue = deque(maxlen=64)  # Fixed size queue
-
 past_frames = None
 current_frame = None
 stop_threads_flag = False
@@ -60,7 +59,10 @@ scheduling_matrix = None
 
 sr = 30  # Sampling rate in Hz
 generate_fps = 30  # Frame generation rate in Hz
-window_size = 64
+window_size = 32
+
+frame_queue = deque()
+stimuli_queue = deque(maxlen=window_size)  # Fixed size queue
 
 def stimuli_sampling_loop():
     global stop_threads_flag
@@ -197,7 +199,9 @@ with gr.Blocks() as demo:
     ''')
 
     with gr.Row():
-        pain_stimuli_slider = gr.Slider(30, 60, value=30, label="Heat Stimuli", step=0.1)
+        pain_stimuli_slider = gr.Slider(
+            30, 60, value=30, label="Heat Stimuli", step=0.1, elem_id="pain_stimuli_slider"
+        )
         pain_configuration_slider = gr.Slider(5, 11, value=5, label="Pain Configuration", step=0.1)
         emotion_status_radio = gr.Radio(
             choices=[

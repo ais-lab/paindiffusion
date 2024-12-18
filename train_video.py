@@ -76,7 +76,7 @@ if __name__ == "__main__":
 
 
     ema = EMA(
-        decay=0.999,
+        decay=0.9999,
         evaluate_ema_weights_instead=True,
         save_ema_weights_in_callback_state=True
     )
@@ -85,7 +85,7 @@ if __name__ == "__main__":
 
     # Lightning Trainer for flexible accelerated training
     trainer = Trainer(
-        max_epochs = 60,
+        max_epochs = 30,
         accelerator = 'gpu',
         devices = 2 if train else 1, # Piece of cake multi-gpu support!
         strategy = 'ddp_find_unused_parameters_true',

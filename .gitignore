@@ -2,6 +2,7 @@ lightning_logs/
 inferno_package/
 preprocess/MEGraphAU
 assets/
+wandb
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
