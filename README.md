@@ -1,12 +1,12 @@
 # PainDiffusion: Can Robots Express Pain?
 
+[![Project Page](https://img.shields.io/badge/Project%20Page-blue?logo=github&labelColor=black&link=https%3A%2F%damtien444.github.io%2Fpaindf)](https://damtien444.github.io/paindf/) [![arXiv](https://img.shields.io/badge/arXiv-2409.11635-B31B1B)](https://arxiv.org/pdf/2409.11635)
+
 ![Flow 1@1x-25fps](https://github.com/user-attachments/assets/41bf9e82-d544-4ee2-b9e5-bfcf2f7abbe8)
 
-[**Project Page**](https://damtien444.github.io/paindf/) | [**arXiv:2409.11635**](https://arxiv.org/pdf/2409.11635)
+---
 
 Due to the privacy policies of the BioVid Database, we can only release the checkpoints, training code, and inference code. To minimize our effort, we are releasing the training and preprocessing code *as is* for reference purposes. We have only tested and verified the inference code, which includes a Gradio-based demo.
-
----
 
 ## Installation
 
@@ -42,14 +42,13 @@ cd inferno_apps/FaceReconstruction
 bash download_assets.sh
 ```
 
----
 
 ## Running the Online Demo
 
 [**PainDiffusion Demo Video**](https://github.com/user-attachments/assets/d3b130cf-67a9-4064-8961-3bd4516af658)
 
 1. **Download the Model Checkpoint**  
-   [**Download Link**](https://drive.google.com/file/d/1sh7JdYWcz-Z-pc30mWtl7TOKxzHwz80V/view?usp=sharing)
+   [**Link**](https://drive.google.com/file/d/1sh7JdYWcz-Z-pc30mWtl7TOKxzHwz80V/view?usp=sharing)
 
 2. **Place the Checkpoint**  
    Save the downloaded checkpoint in a directory of your choice.
@@ -65,7 +64,6 @@ bash download_assets.sh
 5. **Access the Demo**  
    Open [http://127.0.0.1:7860/](http://127.0.0.1:7860/) in your web browser.
 
----
 
 ## Troubleshooting: CUDA Version Issues
 
@@ -83,7 +81,24 @@ export LD_LIBRARY_PATH=$CUDA_HOME/lib64:$LD_LIBRARY_PATH
 
 ## Acknowledgments
 
-This project is heavily based on the excellent implementations of diffusion models from:  
+We thank the previous author for their opensource code. This project is heavily based on the excellent implementations of diffusion models from:  
 - [**modular-diffusion**](https://github.com/myscience/modular-diffusion)  
 - [**denoising-diffusion-pytorch**](https://github.com/lucidrains/denoising-diffusion-pytorch)  
 - [**k-diffusion**](https://github.com/crowsonkb/k-diffusion)  
+
+
+## Citation
+
+```bibtex
+
+@misc{dam2024paindiffusion,
+      title={PainDiffusion: Can robot express pain?}, 
+      author={Quang Tien Dam and Tri Tung Nguyen Nguyen and Dinh Tuan Tran and Joo-Ho Lee},
+      year={2024},
+      eprint={2409.11635},
+      archivePrefix={arXiv},
+      primaryClass={cs.CV},
+      url={https://arxiv.org/abs/2409.11635}, 
+}
+
+```
