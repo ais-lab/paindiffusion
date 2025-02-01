@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Pain Expression Evaluation Experiment</title>
+    <script src="https://unpkg.com/jspsych@8.2.0"></script>
+    <script src="https://unpkg.com/@jspsych/plugin-html-keyboard-response@2.1.0"></script>
+    <script src="https://unpkg.com/@jspsych/plugin-image-keyboard-response@2.1.0"></script>
+    <script src="https://unpkg.com/@jspsych/plugin-html-button-response@2.1.0"></script>
+    <script src="https://unpkg.com/@jspsych/plugin-preload@2.1.0"></script>
+    <link href="https://unpkg.com/jspsych@8.2.0/css/jspsych.css" rel="stylesheet" type="text/css" />
+    <script src="https://unpkg.com/@jspsych/plugin-survey-text@2.1.0"></script>
+
+    <style>
+
+    </style>
+</head>
+
+<body></body>
+<script>
+
+    /* initialize jsPsych */
+    var jsPsych = initJsPsych({
+        on_finish: function () {
+
+            var data = jsPsych.data.get().values();
+            console.log(data);
+            // Send data to server
+            fetch('/save_data', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    session_id: session_id,
+                    timestamp: new Date().toISOString(),
+                    data: data
+                })
+            })
+            .then(response => response.json())
+            .then(data => console.log('Success:', data))
+            .catch((error) => console.error('Error:', error));
+
+            //jsPsych.data.displayData();
+            jsPsych.getDisplayElement().innerHTML = '<p style="font-size: 24px; text-align: center; margin-top: 50px;">Thank you for participating in our experiment!</p>';
+
+        }
+    });
+
+    /* create timeline */
+    var timeline = [];
+
+    const session_id = jsPsych.randomization.randomID(15);
+
+    // Fisher-Yates shuffle function
+    function shuffleArray(array) {
+        for (let i = array.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [array[i], array[j]] = [array[j], array[i]];
+        }
+        return array;
+    }
+    function createVideoComparison(videoList, isSuffle = true, withTrueLabel = false, cropHeight = null, cropPosition = 50, prompt = 'Which generated video do you prefer?', trial_type = 'video-comparison',
+                                    options = null
+    ) {
+        const validPosition = Math.max(0, Math.min(100, cropPosition));
+        
+        // Add CSS to head if not already present
+        if (!document.getElementById('video-comparison-styles')) {
+            const styles = document.createElement('style');
+            styles.id = 'video-comparison-styles';
+            styles.textContent = `
+                .video-container {
+                    display: flex;
+                    flex-wrap: wrap;
+                    justify-content: center;
+                    gap: 20px;
+                    padding: 20px;
+                }
+                .sample-video-wrapper {
+                    flex: 1;
+                    min-width: 300px;
+                    max-width: 400px;
+                    margin: 10px;
+                }
+                .video-label {
+                    text-align: center;
+                    margin-bottom: 10px;
+                    font-weight: bold;
+                }
+                .video-frame {
+                    width: 100%;
+                    overflow: hidden;
+                }
+                .video-frame video {
+                    width: 100%;
+                    height: auto;
+                }
+            `;
+            document.head.appendChild(styles);
+        }
+
+        return {
+            timeline: [
+                {
+                    type: jsPsychHtmlKeyboardResponse,
+                    stimulus: 'We will move to next trial in 1 second.',
+                    choices: "NO_KEYS",
+                    trial_duration: 1000
+                },
+                {
+                    type: jsPsychHtmlButtonResponse,
+                    stimulus: function () {
+                        var selectableVideos = videoList.filter(v => v.selectable);
+                        var shuffledSelectable = isSuffle ? shuffleArray([...selectableVideos]) : selectableVideos;
+                        const displayOrder = [...shuffledSelectable];
+                        //videoHTML += ;
+
+                        let videoHTML = createPlayAllButton() +'<div class="video-container">';
+
+                            const noCrop = videoList.filter(v => v.type === "stimuli");
+                            noCrop.forEach((video) => {
+                                videoHTML += `
+                                    <div class="sample-video-wrapper">
+                                        <div class="video-label">Stimuli</div>
+                                        <div class="video-frame">
+                                            <video>
+                                                <source src="${video.path}" type="video/mp4">
+                                            </video>
+                                        </div>
+                                    </div>
+                                `;
+                            });
+
+                        displayOrder.forEach((video, index) => {
+                            const cropStyle = cropHeight ? 
+                                `style="height: ${cropHeight}px; object-fit: cover; object-position: center ${validPosition}%;"` : 
+                                '';
+                            
+                            videoHTML += `
+                                <div class="sample-video-wrapper">
+                                    <div class="video-label">${withTrueLabel ? video.type : `Option ${index + 1}`}</div>
+                                    <div class="video-frame">
+                                        <video ${cropStyle}>
+                                            <source src="${video.path}" type="video/mp4">
+                                        </video>
+                                    </div>
+                                </div>
+                            `;
+                        });
+
+                        videoHTML += '</div>';
+                        return videoHTML;
+                    },
+                    choices: function () {
+                        if (options) {
+                            return options;
+                        }
+                
+                        const selectableVideos = videoList.filter(v => v.selectable);
+                        return selectableVideos.map((_, index) => `Option ${index + 1}`);
+                    },
+                    prompt: prompt,
+                    on_load: function () { initializeVideoControls() },
+                    on_finish: function(data) {
+
+                        const stimulusElement = document.createElement('div');
+                        stimulusElement.innerHTML = data.stimulus;
+                        const videoElements = stimulusElement.querySelectorAll('video source');
+                        data.video_order = Array.from(videoElements).map(source => {
+                            const path = source.getAttribute('src');
+                            const videoEntry = videoList.find(v => v.path === path);
+                            return videoEntry ? videoEntry.type : 'unknown';
+                        }).filter(type => {
+                            const video = videoList.find(v => v.type === type);
+                            return video && video.selectable;
+                        });
+
+                        if (options) {
+                            data.user_selection = options[data.response];
+                            data.options = options;
+                        } else {
+                            data.user_selection = data.video_order[data.response];
+                            data.options = data.video_order;
+                        }
+
+                        data.trial_id = jsPsych.randomization.randomID(15);
+                        data.session_id = session_id;
+                        data.trial_type = trial_type;
+                    },
+                }
+            ],
+            timeline_variables: [
+                { video_list: videoList }
+            ]
+        };
+    }
+
+    function createPlayAllButton() {
+        return `
+          <div style="text-align: center; margin-top: 20px;">
+              <button id="playAllBtn" 
+                      style="padding: 10px 20px; 
+                             font-size: 16px; 
+                             background-color: #4CAF50; 
+                             color: white; 
+                             border: none; 
+                             border-radius: 4px; 
+                             cursor: pointer;">
+                  Play All Videos
+              </button>
+          </div>
+      `;
+    }
+
+    function addVideoComparison(videoId, withGroundTruth = true, withStimuli = true, cropHeight = null, cropPosition = 50, isSuffle = true, withTrueLabel = false, prompt = 'Which generated video do you prefer?', trial_type = 'video-comparison', withAutoregressive = true, withPainDiffusion = true, options = null,
+    customVideoTypes = null) {
+
+        var videoTypes = ['autoregressive', 'paindiffusion', 'groundtruth', 'stimuli'];
+        if (customVideoTypes) {
+            videoTypes = customVideoTypes;
+        }
+
+        var videoSource = [];
+        if (withAutoregressive) {
+            videoSource.push({ path: `comparison_video/autoregressive/${videoId}.mp4`, type: videoTypes[0], selectable: true });
+        }
+
+        if (withPainDiffusion) {
+            videoSource.push({ path: `comparison_video/paindiffusion/${videoId}.mp4`, type: videoTypes[1], selectable: true });
+        }
+
+        if (withGroundTruth) {
+            videoSource.push({ path: `comparison_video/groundtruth/${videoId}.mp4`, type: videoTypes[2], selectable: true });
+        }
+        if (withStimuli) {
+            videoSource.push({ path: `comparison_video/stimuli/${videoId}.mp4`, type: videoTypes[3], selectable: false });
+        }
+        const comparison = createVideoComparison(videoSource, isSuffle, withTrueLabel, cropHeight, cropPosition, prompt, trial_type, options);
+        timeline.push(comparison);
+        return comparison;
+    }
+
+
+    // timeline.push(createVideoComparison([{path: "68.mp4", type: "stimuli", selectable: false}])) -->
+
+    function addVideoDiversity(videoId, cropHeight = null, cropPosition = 50, isSuffle = true, withTrueLabel = false, prompt = 'How diverse are the videos?', trial_type = 'video-diversity', options = null) {
+        var videoSources = [
+            {path: `comparison_video/diversity/try_1/${videoId}.mp4`, type: "try_1", selectable: true},
+            {path: `comparison_video/diversity/try_2/${videoId}.mp4`, type: "try_2", selectable: true},
+            {path: `comparison_video/diversity/try_3/${videoId}.mp4`, type: "try_3", selectable: true},
+            {path: `comparison_video/diversity/try_4/${videoId}.mp4`, type: "try_4", selectable: true},
+            ];
+        const comparison = createVideoComparison(videoSources, isSuffle, withTrueLabel, cropHeight, cropPosition, prompt, trial_type, options);
+        timeline.push(comparison);
+    }
+
+
+    var instructions = {
+        type: jsPsychHtmlKeyboardResponse,
+        stimulus: `
+        <h1>Evaluating Experiment for Machine Pain Reaction</h1>
+        <p>In this experiment, you will evaluate the naturalness of human facial movements.</p>
+        <p>You will focus on facial expressions.</p>
+        <br>
+        <p><i>Press any key to move forward</i>.</p>
+        `,
+        post_trial_gap: 500
+          };
+
+    timeline.push(instructions);
+
+    var instructions = {
+        type: jsPsychHtmlKeyboardResponse,
+        stimulus: `
+        <h1>Instructions</h1>
+        <p>You will be watching several videos of faces reacting to a pain-causing action <br> (the higher the chart value, the stronger the action).</p>
+        <br>
+        <p>There will be 3 parts on your screen:</p>
+        <p>1. The top part shows a play button (green). Please <b>click play button</b> to play the videos.</p>
+        <p>2. The middle part displays the videos. Depending on the question, there will be multiple videos.</p>
+        <p>3. The bottom part shows the question. Please choose the option that best answers the question.</p>
+        <br>
+        <p> It will take you 12-15 minutes to complete the experiment.</p>
+        <br>
+        <p><i>Press any key to move forward</i>.</p>
+
+        `,
+        post_trial_gap: 500
+      };
+
+    timeline.push(instructions);
+
+
+    // Convert string to array and clean up
+    const numbers = '68 38 17 29 53 50 95 32 78 9 37 28 87 39 56 86 34 52 6 89 57 90 45 82 51 33 97 46 85 11 7 76 36 43 10 18 67 12 60 66 27 63 4 58 14 72 22'.split(' ').map(Number);
+
+    // Fisher-Yates shuffle algorithm
+    function shuffle(array) {
+        for (let i = array.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [array[i], array[j]] = [array[j], array[i]];
+        }
+        return array;
+    }
+
+    // controllablity
+
+    // Get 3 random numbers
+    var randomThree = shuffle([...numbers]).slice(0, 3);
+
+    prompt = 'How strong do you think the reaction following the pain-causing action? <br> (the higher the chart value, the stronger the action)';
+    options = ['Very weak', 'Weak', 'Neutral', 'Strong', 'Very strong'];
+    // groundtruth vs stimuli
+    addVideoComparison(
+        videoId = randomThree[0],
+        withGroundTruth = true,
+        withStimuli = true,
+        cropHeight = null,
+        cropPosition = 0,
+        isSuffle = false,
+        withTrueLabel = false,
+        prompt = prompt,
+        trial_type = 'reaction_strength_groundtruth',
+        withAutoregressive = false,
+        withPainDiffusion = false,
+        options = options
+    )
+
+    <!-- addVideoComparison(
+        videoId = randomThree[1],
+        withGroundTruth = true,
+        withStimuli = true,
+        cropHeight = null,
+        cropPosition = 0,
+        isSuffle = false,
+        withTrueLabel = false,
+        prompt = prompt,
+        trial_type = 'reaction_strength_groundtruth',
+        withAutoregressive = false,
+        withPainDiffusion = false,
+        options = options
+    ) -->
+
+    // paindiffusion vs stimuli
+    addVideoComparison(
+        videoId = randomThree[2],
+        withGroundTruth = false,
+        withStimuli = true,
+        cropHeight = null,
+        cropPosition = 0,
+        isSuffle = false,
+        withTrueLabel = false,
+        prompt = prompt,
+        trial_type = 'reaction_strength_paindiffusion',
+        withAutoregressive = false,
+        withPainDiffusion = true,
+        options = options
+    )
+
+    <!-- addVideoComparison(
+        videoId = randomThree[1],
+        withGroundTruth = false,
+        withStimuli = true,
+        cropHeight = null,
+        cropPosition = 0,
+        isSuffle = false,
+        withTrueLabel = false,
+        prompt = prompt,
+        trial_type = 'reaction_strength_paindiffusion',
+        withAutoregressive = false,
+        withPainDiffusion = true,
+        options = options
+    ) -->
+
+
+    randomThree = shuffle([...numbers]).slice(0, 3);
+    // eye region (70, 20)
+    // mouth region (100, 80)
+    // full face (null, 0)
+    prompt = 'Which option motion is more realistic in term of movement?';
+    addVideoComparison(randomThree[0], true, true, 70, 20, true, false, prompt = prompt, trial_type = 'realistic_crop_eye_paindiffusion_groundtruth', withPainDiffusion = true, withAutoregressive = false);    
+    addVideoComparison(randomThree[1], false, true, 70, 20, true, false, prompt = prompt, trial_type = 'realistic_crop_eye_paindiffusion_autoregressive', withPainDiffusion = true, withAutoregressive = true);    
+    //addVideoComparison(randomThree[2], true, true, 70, 20, true, false, prompt = prompt, trial_type = 'realistic_crop_eye');    
+ 
+    randomThree = shuffle([...numbers]).slice(0, 3);
+
+    prompt = 'Which option motion is more realistic in term of movement?';
+    addVideoComparison(randomThree[0], true, true, 100, 80, true, false, prompt=prompt, trial_type = 'realistic_crop_mouth_paindiffusion_groundtruth', withPainDiffusion = true, withAutoregressive = false);  
+    addVideoComparison(randomThree[1], false, true, 100, 80, true, false, prompt=prompt, trial_type = 'realistic_crop_mouth_paindiffusion_autoregressive', withPainDiffusion = true, withAutoregressive = true);  
+    //addVideoComparison(randomThree[2], true, true, 100, 80, true, false, prompt=prompt, trial_type = 'realistic_crop_mouth');
+
+    randomThree = shuffle([...numbers]).slice(0, 3);
+
+    prompt = 'Which option motion is more realistic in term of movement?';
+    addVideoComparison(randomThree[0], true, true, null, 0, true, false, prompt=prompt, trial_type = 'realistic_overall_paindiffusion_groundtruth', withPainDiffusion = true, withAutoregressive = false);  
+    addVideoComparison(randomThree[1], false, true, null, 0, true, false, prompt=prompt, trial_type = 'realistic_overall_paindiffusion_autoregressive', withPainDiffusion = true, withAutoregressive = true);
+    //addVideoComparison(randomThree[2], true, true, null, 0, true, false, prompt=prompt, trial_type = 'realistic_overall');
+
+    randomThree = shuffle([...numbers]).slice(0, 3);
+
+    prompt = 'How diverse are the SCALE of movements among the videos?';
+    options = ['Very similar', 'Similar', 'Slightly Different', 'Diverse', 'Very diverse'];
+    addVideoDiversity(randomThree[0], 70, 20, true, false, prompt, 'video-diversity', options, trial_type = 'diversity_scale_eye');
+    addVideoDiversity(randomThree[1], 100, 80, true, false, prompt, 'video-diversity', options, trial_type = 'diversity_scale_mouth');
+    addVideoDiversity(randomThree[2], null, 0, true, false, prompt, 'video-diversity', options, trial_type = 'diversity_scale_overall');
+
+    randomThree = shuffle([...numbers]).slice(0, 3);
+
+    prompt = 'How diverse are the TYPE of movements among the videos?';
+    options = ['Very similar', 'Similar', 'Slightly Different', 'Diverse', 'Very diverse'];
+    addVideoDiversity(randomThree[0], 70, 20, true, false, prompt, 'video-diversity', options, trial_type = 'diversity_type_eye');
+    addVideoDiversity(randomThree[1], 100, 80, true, false, prompt, 'video-diversity', options, trial_type = 'diversity_type_mouth');
+    addVideoDiversity(randomThree[2], null, 0, true, false, prompt, 'video-diversity', options, trial_type = 'diversity_type_overall');
+
+    randomThree = shuffle([...numbers]).slice(0, 3);
+
+    prompt = 'How diverse are the videos?';
+    options = ['Very similar', 'Similar', 'Slightly Different', 'Diverse', 'Very diverse'];
+    addVideoDiversity(randomThree[0], 70, 20, true, false, prompt, 'video-diversity', options, trial_type = 'diversity_general_eye');
+    addVideoDiversity(randomThree[1], 100, 80, true, false, prompt, 'video-diversity', options, trial_type = 'diversity_general_mouth');
+    addVideoDiversity(randomThree[2], null, 0, true, false, prompt, 'video-diversity', options, trial_type = 'diversity_general_overall');
+
+    randomThree = shuffle([...numbers]).slice(0, 3);
+
+    // Overall judgement
+    prompt = 'Which reaction do you prefer?';
+    // without label, with groundtruth and paindiffusion, without stimuli
+    addVideoComparison(randomThree[0], true, false, null, 0, true, false, prompt=prompt, trial_type = 'overall', false, true);
+    addVideoComparison(randomThree[1], true, false, null, 0, true, false, prompt=prompt, trial_type = 'overall', false, true);
+
+    // with label, with groundtruth and paindiffusion, without stimuli
+    options = ['Real human', 'Machine generated'];
+    prompt = 'Which reaction do you prefer? <br> Please note the details why do you choose that option.';
+    question_object = addVideoComparison(randomThree[2], true, false, null, 0, true, true, prompt=prompt, trial_type = 'overall_with_label', false, true, options, customVideoTypes = ['', 'Machine generated', 'Real human', '']);
+
+    // explain why did you choose the video
+    var explain_trial = {
+        type: jsPsychSurveyText,
+        preamble: question_object.timeline[1].stimulus,
+        questions: [
+          {prompt: 'Why do you choose your last options (please describe in detail)?'}
+        ],
+        data: {
+            question: 'Why do you choose your last options (please describe in detail)?',
+        },
+        on_load: function () { initializeVideoControls() },
+      };
+
+    timeline.push(explain_trial);
+
+    var perfomer_trial = {
+        type: jsPsychSurveyText,
+        questions: [
+          {prompt: 'What is your name?'},
+          {prompt: 'How old are you?'},
+          {prompt: 'How offen do you see a patient in pain?'},
+        ],
+        data: {
+            questions: ['What is your name?', 'How old are you?', 'How offen do you see a patient in pain?'],
+        }
+      };
+
+    timeline.push(perfomer_trial);
+
+    /* start the experiment */
+    jsPsych.run(timeline);
+
+</script>
+
+<script>
+    function initializeVideoControls() {
+        const playBtn = document.getElementById('playAllBtn');
+        const videos = document.querySelectorAll('video');
+        let isPlaying = false;
+
+        playBtn.addEventListener('click', function () {
+            if (!isPlaying) {
+                videos.forEach(video => {
+                    video.currentTime = 0;
+                    video.play();
+                });
+                playBtn.textContent = 'Pause All';
+                playBtn.style.backgroundColor = '#f44336';
+            } else {
+                videos.forEach(video => {
+                    video.pause();
+                });
+                playBtn.textContent = 'Play All';
+                playBtn.style.backgroundColor = '#4CAF50';
+            }
+            isPlaying = !isPlaying;
+        });
+
+        videos.forEach(video => {
+            video.addEventListener('ended', function () {
+                playBtn.textContent = 'Play All';
+                playBtn.style.backgroundColor = '#4CAF50';
+                isPlaying = false;
+            });
+        });
+    }
+</script>
+
+</html>

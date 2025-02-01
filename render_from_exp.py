@@ -101,7 +101,8 @@ def decode_latent_to_image(face_shape_path, prediction_tensor_path, model=face_r
             visdict = face_rec_model.visualize_batch(batch, 0, None, in_batch_idx=None)
 
             current_bs = batch["expcode"].shape[0]
-            
+            imgs = []
+
             for j in range(current_bs):
                 
                 img = visdict['shape_image'][j]
@@ -128,6 +129,7 @@ if __name__ == "__main__":
     parser.add_argument("--defaut_face_path", type=str, required=False, default=defaut_face_path)
     parser.add_argument("--output_dir", type=str, required=True)
     parser.add_argument("--video_render", type=bool, required=False, default=False)
+    parser.add_argument("--file_list", default="")
     
     arg = parser.parse_args()
     
@@ -135,6 +137,7 @@ if __name__ == "__main__":
     defaut_face_path = arg.defaut_face_path
     output_dir = arg.output_dir
     video_render = arg.video_render
+    file_name_list = arg.file_list.split(" ")
     
     rendered_images = []
 
@@ -153,6 +156,15 @@ if __name__ == "__main__":
             # if video_render:
             #     os.system(f"ffmpeg -r 25 -i  {output_dir}/{basename.split('.')[0]}/%d.jpg  -vcodec mpeg4 -b:v 10M -y {output_dir}/{basename.split('.')[0]}.mp4")
 
+    elif file_name_list:
+        for file_name in file_name_list:
+            
+            basename = file_name
+            os.makedirs(os.path.join(output_dir, basename.split(".")[0]), exist_ok=True)
+            
+            file_path = os.path.join(input_path, file_name)
+            
+            decode_latent_to_image(defaut_face_path, file_path, face_rec_model, output_dir, basename, render=video_render)
     
     else:
         basename = os.path.basename(input_path)

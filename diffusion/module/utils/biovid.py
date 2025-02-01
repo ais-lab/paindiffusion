@@ -205,7 +205,7 @@ class BioVidDataset(Dataset):
                 for change_state_frame in changing_state_frames:
                     random_start = random.randint(0, 9)
                     
-                    chunk_start_pointer = change_state_frame[0] - int(100*(1/4)) + random_start
+                    chunk_start_pointer = change_state_frame[0] - int(200*(1/4)) + random_start
                     chunk_end_pointer = change_state_frame[0] + int(200*(3/4)) + random_start
                     
                     if chunk_start_pointer < 1:
