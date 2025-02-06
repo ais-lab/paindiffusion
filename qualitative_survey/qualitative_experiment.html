@@ -160,6 +160,8 @@
 
     /* initialize jsPsych */
     var jsPsych = initJsPsych({
+        show_progress_bar: true,
+        message_progress_bar: '',
         on_finish: function () {
 
             var data = jsPsych.data.get().values();
