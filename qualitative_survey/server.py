@@ -26,6 +26,10 @@ def serve_experiment():
 def serve_video(filename):
     return send_from_directory('comparison_video', filename)
 
+@app.route('/logo/<path:filename>')
+def serve_logo(filename):
+    return send_from_directory('logo', filename)
+
 @app.route('/save_data', methods=['POST'])
 def save_data():
     try:
