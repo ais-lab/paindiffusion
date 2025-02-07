@@ -28,7 +28,7 @@
     langButtonStyle.textContent = `
         #langToggle {
             position: fixed;
-            top: 50px;
+            top: 20px;
             right: 20px;
             padding: 10px 20px;
             background-color: #4CAF50;
@@ -89,12 +89,12 @@
                 "How offen do you see a patient in pain? Per week basis.",
                 "How long have you been in charge of treating a real patient? If not, please enter 0."
             ],
-            prompt_reaction: 'How strong is the facial reaction to the pain-causing action? <br> Note: The reaction may occur immediately or after a brief delay. <br> (Watch the left chart: Higher values show stronger pain-causing actions)',
+            prompt_reaction: 'How strong do you think the reaction is to the pain-causing action? <br> On the left is the action chart (stimuli), the HIGHER the chart value, the STRONGER the action)',
             options_reaction: ['Very weak', 'Weak', 'Slightly strong', 'Strong', 'Very strong'],
             prompt_realistic: 'Which option has more realistic movement?',
-            prompt_diversity_scale: 'How different are the SIZES of movements among the videos? <br> For example, small versus big movements of eyebrows, small versus wide mouth openings.',
-            prompt_diversity_type: 'How different are the TYPES of movements among these videos? <br> For example: Some videos might show quick twitches while others have slower movements, <br> or some might focus on eyebrow movements while others show more mouth movements.',
-            prompt_diversity_general: 'How different do these videos look from each other?',
+            prompt_diversity_scale: 'How diverse is the SCALE of movements among the videos? <br> A bigger scale means a larger movement, for example large movement of the eyebrows.',
+            prompt_diversity_type: 'How diverse are the TYPES of movements among the videos? <br> For example, different regions of movement, or quick versus slow movements.',
+            prompt_diversity_general: 'How diverse are the videos?',
             options_diversity: ['Very similar', 'Similar', 'Slightly Different', 'Diverse', 'Very diverse'],
             prompt_overall: 'Which reaction do you prefer?',
             prompt_overall_label: 'Which reaction do you prefer? <br> Please note the details why do you choose that option.',
@@ -109,53 +109,52 @@
         },
         jp: {
             instructions_intro: `
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                    <img src="logo/school_logo.png" alt="School Logo" style="height: 80px;">
-                    <img src="logo/lab_logo.png" alt="Lab Logo" style="height: 80px;">
-                </div>
-                <h1>患者の痛み表情に関する評価実験</h1>
-                <p>この実験では、人の顔の動きの自然さを評価していただきます。</p>
-                <p>特に表情の変化に注目してご覧ください。</p>
-                <br>
-                <p><i>次へ進むには、キーボードのいずれかのキーを押してください。</i></p>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <img src="logo/school_logo.png" alt="学校ロゴ" style="height: 80px;">
+                <img src="logo/lab_logo.png" alt="研究室ロゴ" style="height: 80px;">
+            </div>
+            <h1>機械痛反応評価実験</h1>
+            <p>この実験では、人間の表情運動の自然さを評価していただきます。</p>
+            <p>表情の動きに注目してください。</p>
+            <br>
+            <p><i>次に進むには、任意のキーを押してください</i>。</p>
             `,
             instructions_second: `
-                <h1>実験手順の説明</h1>
-                <p>これから痛みを感じた時の表情の映像をご覧いただきます。<br>
-                （グラフの数値が高いほど、強い痛み刺激を表しています）</p>
-                <br>
-                <p>画面は以下の3つの部分で構成されています：</p>
-                <p>1. 上部：緑色の【再生ボタン】をクリックすると映像が再生されます。</p>
-                <p>2. 中央：映像が表示されます（質問によって映像の数が変わります）。</p>
-                <p>3. 下部：質問とその回答選択肢が表示されます。最も適切な選択肢を選んでください。</p>
-                <br>
-                <p>所要時間は約12～15分です。</p>
-                <br>
-                <p><i>次へ進むには、キーボードのいずれかのキーを押してください。</i></p>
+            <h1>実験の説明</h1>
+            <p>痛みを与える行動に対する顔の反応動画をご覧いただきます。<br>(グラフの値が高いほど、強い刺激となります)。</p>
+            <br>
+            <p>画面は以下の3つの部分に分かれています：</p>
+            <p>1. 上部にプレイボタン（緑色）が表示されます。動画を再生するには<b>プレイボタンをクリック</b>してください。</p>
+            <p>2. 中央に動画が表示されます。質問に応じて複数の動画が表示されます。</p>
+            <p>3. 下部に質問が表示されます。質問に最も適した回答を選択してください。</p>
+            <br>
+            <p>実験の所要時間は12～15分です。</p>
+            <br>
+            <p><i>次に進むには、任意のキーを押してください</i>。</p>
             `,
             performer_questions: [
-                "お名前をご記入ください",
-                "年齢をご記入ください",
-                "週に何回程度、痛みを訴える患者さんを診察されますか？",
-                "臨床経験年数をご記入ください（経験がない場合は0）"
+            "お名前を入力してください。",
+            "年齢を入力してください。",
+            "週にどのくらいの頻度で痛みを感じている患者さんを見かけますか？",
+            "実際の患者の治療経験は何年ですか？経験がない場合は0を入力してください。"
             ],
-            prompt_reaction: '痛み刺激に対する表情の反応の<strong>強さ</strong>を評価してください<br>（グラフの数値が高いほど、強い痛み刺激を示しています）<br>※反応は即座に、または少し遅れて現れる場合があります',
+            prompt_reaction: '痛みを与える刺激に対する反応の<strong>強さ</strong>はどの程度ですか？<br>(左のグラフの値が高いほど、強い刺激です)',
             options_reaction: ['非常に弱い', '弱い', 'やや強い', '強い', '非常に強い'],
-            prompt_realistic: 'どちらの映像の動きがより自然に見えますか？',
-            prompt_diversity_scale: '映像間での動きの<strong>大きさ</strong>にどの程度違いがありますか？<br>（例：眉の上がり方の大小、口の開き方の大小など）',
-            prompt_diversity_type: '映像間での動きの速度にどの程度違いがありますか？<br>（例：素早い動きか緩やかな動きか、眉の動きが中心か口の動きが中心かなど）',
-            prompt_diversity_general: '全体的に見て、これらの映像にどの程度違いがありますか？',
-            prompt_overall: 'どの反応が最も適切だと思われますか？',
-            prompt_overall_label: 'より自然な反応はどちらだと思われますか？<br>選択した理由も併せてご記入ください',
-            options_overall_label: ['実際の患者さんの反応', 'コンピュータが作成した反応'],
-            survey_explain: '選択された理由を具体的にご説明ください',
-            options_diversity: ['ほとんど同じ', 'やや似ている', 'やや異なる', 'かなり異なる', '大きく異なる'],
-            playAll: '全て再生',
+            prompt_realistic: 'どちらの動きがより自然に見えますか？',
+            prompt_diversity_scale: '動画間の動きの<strong>大きさ</strong>にどの程度の違いがありますか？<br>例えば、眉の動きの大きさなど。',
+            prompt_diversity_type: '動画間の動きの<strong>種類</strong>にどの程度の違いがありますか？<br>例えば、動く部位の違いや、素早い動きと遅い動きの違いなど。',
+            prompt_diversity_general: '動画にどの程度の多様性がありますか？',
+            options_diversity: ['非常によく似ている', '似ている', 'やや異なる', '多様', '非常に多様'],
+            prompt_overall: 'どちらの反応が良いと思いますか？',
+            prompt_overall_label: 'どちらの反応が良いと思いますか？<br>その選択理由を詳しく説明してください。',
+            options_overall_label: ['実際の人間', '機械生成'],
+            survey_explain: '最後の選択の理由を詳しく説明してください。',
+            playAll: 'すべて再生',
             pauseAll: '一時停止',
-            thank_you: `<p style="font-size: 24px; text-align: center; margin-top: 50px;">ご協力ありがとうございました</p>`,
-            next_trial: "1秒後に次の評価に進みます",
-            video_warning_title: "ご注意",
-            video_warning: "全ての映像を最後までご覧ください。途中で見逃された場合、実験が無効となります"
+            thank_you: `<p style="font-size: 24px; text-align: center; margin-top: 50px;">実験にご参加いただき、ありがとうございました！</p>`,
+            next_trial: "1秒後に次の試行に移ります。",
+            video_warning_title: "警告",
+            video_warning: "ビデオを最後まで視聴してください。そうしないと実験が失敗します。"
         }
     };
 
