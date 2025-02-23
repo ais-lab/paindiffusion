@@ -505,21 +505,6 @@
         options = options
     )
 
-    addVideoComparison(
-        videoId = randomThree[1],
-        withGroundTruth = true,
-        withStimuli = true,
-        cropHeight = null,
-        cropPosition = 0,
-        isSuffle = false,
-        withTrueLabel = false,
-        prompt = prompt,
-        trial_type = 'reaction_strength_groundtruth',
-        withAutoregressive = false,
-        withPainDiffusion = false,
-        options = options
-    ) 
-
     // paindiffusion vs stimuli
     addVideoComparison(
         videoId = randomThree[2],
@@ -536,71 +521,92 @@
         options = options
     )
 
-    addVideoComparison(
-        videoId = randomThree[1],
-        withGroundTruth = false,
-        withStimuli = true,
-        cropHeight = null,
-        cropPosition = 0,
-        isSuffle = false,
-        withTrueLabel = false,
-        prompt = prompt,
-        trial_type = 'reaction_strength_paindiffusion',
-        withAutoregressive = false,
-        withPainDiffusion = true,
-        options = options
-    )
-
-
     randomThree = shuffle([...numbers]).slice(0, 3);
     // eye region (70, 20)
     // mouth region (100, 80)
     // full face (null, 0)
     prompt = translations[selectedLang].prompt_realistic;
-    addVideoComparison(
-        randomThree[0],    // videoId
-        true,              // withGroundTruth 
-        true,              // withStimuli
-        70,                // cropHeight
-        20,                // cropPosition
-        true,             // isSuffle
-        false,             // withTrueLabel
-        prompt,            // prompt
-        'realistic_crop_eye_paindiffusion_groundtruth', // trial_type
-        false,             // withAutoregressive
-        true,             // withPainDiffusion
-        null,           // options
-        null               // customVideoTypes
-    );
-    addVideoComparison(
-        randomThree[1],    // videoId
-        false,              // withGroundTruth 
-        true,              // withStimuli
-        70,                // cropHeight
-        20,                // cropPosition
-        true,             // isSuffle
-        false,             // withTrueLabel
-        prompt,            // prompt
-        'realistic_crop_eye_paindiffusion_autoregressive', // trial_type
-        true,             // withAutoregressive
-        true,             // withPainDiffusion
-        null,           // options
-        null               // customVideoTypes
-    );
+    // addVideoComparison(
+    //     randomThree[0],    // videoId
+    //     true,              // withGroundTruth 
+    //     true,              // withStimuli
+    //     70,                // cropHeight
+    //     20,                // cropPosition
+    //     true,             // isSuffle
+    //     false,             // withTrueLabel
+    //     prompt,            // prompt
+    //     'realistic_crop_eye_paindiffusion_groundtruth', // trial_type
+    //     false,             // withAutoregressive
+    //     true,             // withPainDiffusion
+    //     null,           // options
+    //     null               // customVideoTypes
+    // );
+    // addVideoComparison(
+    //     randomThree[1],    // videoId
+    //     false,              // withGroundTruth 
+    //     true,              // withStimuli
+    //     70,                // cropHeight
+    //     20,                // cropPosition
+    //     true,             // isSuffle
+    //     false,             // withTrueLabel
+    //     prompt,            // prompt
+    //     'realistic_crop_eye_paindiffusion_autoregressive', // trial_type
+    //     true,             // withAutoregressive
+    //     true,             // withPainDiffusion
+    //     null,           // options
+    //     null               // customVideoTypes
+    // );
  
     randomThree = shuffle([...numbers]).slice(0, 3);
 
+    // prompt = translations[selectedLang].prompt_realistic;
+    // addVideoComparison(
+    //     randomThree[0],    // videoId
+    //     true,              // withGroundTruth 
+    //     true,              // withStimuli
+    //     100,              // cropHeight
+    //     80,                 // cropPosition
+    //     true,             // isSuffle
+    //     false,             // withTrueLabel
+    //     prompt,            // prompt
+    //     'realistic_crop_mouth_paindiffusion_groundtruth', // trial_type
+    //     false,             // withAutoregressive
+    //     true,             // withPainDiffusion
+    //     null,           // options
+    //     null               // customVideoTypes
+    // );
+
+//    addVideoComparison(
+//        randomThree[1],    // videoId
+//        false,              // withGroundTruth 
+//        true,              // withStimuli
+//        100,              // cropHeight
+//        80,                 // cropPosition
+//        true,             // isSuffle
+//        false,             // withTrueLabel
+//        prompt,            // prompt
+//        'realistic_crop_mouth_paindiffusion_autoregressive', // trial_type
+//        true,             // withAutoregressive
+//        true,             // withPainDiffusion
+//        null,           // options
+//        null               // customVideoTypes
+//    );
+    //addVideoComparison(randomThree[2], true, true, 100, 80, true, false, prompt=prompt, trial_type = 'realistic_crop_mouth');
+
+    randomThree = shuffle([...numbers]).slice(0, 3);
+
     prompt = translations[selectedLang].prompt_realistic;
+
     addVideoComparison(
         randomThree[0],    // videoId
         true,              // withGroundTruth 
         true,              // withStimuli
-        100,              // cropHeight
-        80,                 // cropPosition
+        null,              // cropHeight
+        0,                 // cropPosition
         true,             // isSuffle
         false,             // withTrueLabel
         prompt,            // prompt
-        'realistic_crop_mouth_paindiffusion_groundtruth', // trial_type
+        'realistic_overall_paindiffusion_groundtruth', // trial_type
         false,             // withAutoregressive
         true,             // withPainDiffusion
         null,           // options
@@ -611,18 +617,89 @@
         randomThree[1],    // videoId
         false,              // withGroundTruth 
         true,              // withStimuli
-        100,              // cropHeight
-        80,                 // cropPosition
+        null,              // cropHeight
+        0,                 // cropPosition
         true,             // isSuffle
         false,             // withTrueLabel
         prompt,            // prompt
-        'realistic_crop_mouth_paindiffusion_autoregressive', // trial_type
+        'realistic_overall_paindiffusion_autoregressive', // trial_type
         true,             // withAutoregressive
         true,             // withPainDiffusion
         null,           // options
         null               // customVideoTypes
     );
-    //addVideoComparison(randomThree[2], true, true, 100, 80, true, false, prompt=prompt, trial_type = 'realistic_crop_mouth');
+
+    randomThree = shuffle([...numbers]).slice(0, 3);
+
+    prompt = translations[selectedLang].prompt_realistic;
+
+    addVideoComparison(
+        randomThree[0],    // videoId
+        true,              // withGroundTruth 
+        true,              // withStimuli
+        null,              // cropHeight
+        0,                 // cropPosition
+        true,             // isSuffle
+        false,             // withTrueLabel
+        prompt,            // prompt
+        'realistic_overall_paindiffusion_groundtruth', // trial_type
+        false,             // withAutoregressive
+        true,             // withPainDiffusion
+        null,           // options
+        null               // customVideoTypes
+    );
+
+    addVideoComparison(
+        randomThree[1],    // videoId
+        false,              // withGroundTruth 
+        true,              // withStimuli
+        null,              // cropHeight
+        0,                 // cropPosition
+        true,             // isSuffle
+        false,             // withTrueLabel
+        prompt,            // prompt
+        'realistic_overall_paindiffusion_autoregressive', // trial_type
+        true,             // withAutoregressive
+        true,             // withPainDiffusion
+        null,           // options
+        null               // customVideoTypes
+    );
+
+    randomThree = shuffle([...numbers]).slice(0, 3);
+
+    prompt = translations[selectedLang].prompt_realistic;
+
+    addVideoComparison(
+        randomThree[0],    // videoId
+        true,              // withGroundTruth 
+        true,              // withStimuli
+        null,              // cropHeight
+        0,                 // cropPosition
+        true,             // isSuffle
+        false,             // withTrueLabel
+        prompt,            // prompt
+        'realistic_overall_paindiffusion_groundtruth', // trial_type
+        false,             // withAutoregressive
+        true,             // withPainDiffusion
+        null,           // options
+        null               // customVideoTypes
+    );
+
+    addVideoComparison(
+        randomThree[1],    // videoId
+        false,              // withGroundTruth 
+        true,              // withStimuli
+        null,              // cropHeight
+        0,                 // cropPosition
+        true,             // isSuffle
+        false,             // withTrueLabel
+        prompt,            // prompt
+        'realistic_overall_paindiffusion_autoregressive', // trial_type
+        true,             // withAutoregressive
+        true,             // withPainDiffusion
+        null,           // options
+        null               // customVideoTypes
+    );
 
     randomThree = shuffle([...numbers]).slice(0, 3);
 
