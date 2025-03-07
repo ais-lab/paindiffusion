@@ -10,7 +10,7 @@ import torch
 import yaml
 from diffusion.elucidated_for_video import ElucidatedDiffusion
 
-from diffusion.module.utils.biovid import BioVidDM
+from diffusion.module.utils.biovid import BioVidDM, bilateral_filter
 from inferno_package.render_from_exp import decode_latent_to_image
 
 
@@ -48,6 +48,8 @@ window_size = 32
 
 frame_queue = deque()
 stimuli_queue = deque(maxlen=window_size)  # Fixed size queue
+smooth_window_size = 2
+smooth_window = deque(maxlen=smooth_window_size)
 
 def stimuli_sampling_loop():
     global stop_threads_flag
@@ -109,7 +111,21 @@ def generate_frames(stimuli_values):
     
     prediction_tensor = model.sample_a_chunk(ctrl, guide, past_frames)
     
+    smooth_window.append(prediction_tensor.squeeze(0).cpu().numpy())
+    
+    smoothed_frames = np.concatenate(smooth_window, axis=0)
+    
+    # print(f"Smoothed frames shape: {smoothed_frames.shape}")
+    
+    # smoothed_frames = savitzky_golay(smoothed_frames, 5, 2)
+    
+    smoothed_frames = bilateral_filter(smoothed_frames)
+    
+    smoothed_frames = torch.tensor(smoothed_frames).float()
+    
     past_frames = prediction_tensor.detach().clone()
+    
+    prediction_tensor = smoothed_frames[prediction_tensor.shape[0]:].cuda()
     
     # print(prediction_tensor.shape)
     

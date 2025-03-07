@@ -4,6 +4,7 @@ import random
 import shutil
 
 # import pandas as pd
+import cv2
 import numpy as np
 import scipy
 import torch
@@ -43,6 +44,29 @@ def savitzky_golay(original_data, window_length=10, polyorder=2):
             polyorder=polyorder
         )
     return smoothed
+
+
+def bilateral_filter(original_data, d=5, sigma_color=20, sigma_space=20):
+        """
+        Bilateral filtering along temporal dimension of sequence.
+        
+        Parameters:
+        - d: Diameter of each pixel neighborhood
+        - sigma_color: Filter sigma in the color space
+        - sigma_space: Filter sigma in the coordinate space
+        
+        Returns:
+        - Smoothed data with same shape as input
+        """
+        smoothed = np.zeros_like(original_data)
+        for i in range(original_data.shape[1]):
+            smoothed[:, i] = cv2.bilateralFilter(
+                original_data[:, i].astype(np.float32).reshape(-1, 1), 
+                d=d, 
+                sigmaColor=sigma_color, 
+                sigmaSpace=sigma_space
+            ).flatten()
+        return smoothed
 
 class BioVidDataset(Dataset):
 
