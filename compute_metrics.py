@@ -1,5 +1,6 @@
 import os
 import torch
+import numpy as np
 from tqdm import tqdm
 from run_baseline import get_val
 from metrics.metrics import calculate_pain_metrics
@@ -50,18 +51,26 @@ def calculate_metrics(prediction_dir, max_try=5, max_sample=-1):
         os.remove(f"{prediction_dir}/pred.pt")
         os.remove(f"{prediction_dir}/gt.pt")
         os.remove(f"{prediction_dir}/stimuli.pt")
+        
+
     
     if not os.path.exists(f"{prediction_dir}/pred.pt"):
         for try_idx in range(max_try):
+            cnt = 0
             for idx, sample in tqdm(val_list):
                 video_name, start_frame, end_frame = sample
                 
                 end_frame = start_frame + 608
                 
+                if not os.path.exists(f"{prediction_dir}/try_{try_idx}/{idx}.pt") and not os.path.exists(f"{prediction_dir}/try_{try_idx}/test_ctrl_{idx}.pt"):
+                    continue
+                
                 try:
                     _pred = torch.load(f"{prediction_dir}/try_{try_idx}/{idx}.pt", map_location="cpu")
                 except:
                     _pred = torch.load(f"{prediction_dir}/try_{try_idx}/test_ctrl_{idx}.pt", map_location="cpu")
+                    
+                cnt += 1
                 
                 try:
                     _pred = _pred['x']
@@ -75,21 +84,24 @@ def calculate_metrics(prediction_dir, max_try=5, max_sample=-1):
 
                 _pred = _pred[:,:sequence_length]
                 pred['exp'].append(_pred)
+                
+                if not os.path.exists(f"{prediction_dir}/pspi_try_{try_idx}"):
+                    continue
+                
+                try:
+                    _pspi = torch.load(f"{prediction_dir}/pspi_try_{try_idx}/{idx}.pt")
+                except:
+                    _pspi = torch.load(f"{prediction_dir}/pspi_try_{try_idx}/test_ctrl_{idx}.pt")
+                
+                _pspi = [p[1] for p in _pspi]
+                
+                _pspi = _pspi[:sequence_length]
+                
+                pred['pspi'].append(_pspi)
                                     
                 if try_idx == 0:
                     sample = val_set.__getitem__(idx, video_name=video_name, start_frame_id=start_frame, end_frame_id=end_frame)
 
-                    try:
-                        _pspi = torch.load(f"{prediction_dir}/pspi/{idx}.pt")
-                    except:
-                        _pspi = torch.load(f"{prediction_dir}/pspi/test_ctrl_{idx}.pt")
-                    
-                    _pspi = [p[1] for p in _pspi]
-                    
-                    _pspi = _pspi[:sequence_length]
-                    
-                    pred['pspi'].append(_pspi)
-                    
                     exp_groundtruth = sample['x']
                     
                     exp_groundtruth[..., :3] /= 100
@@ -124,21 +136,76 @@ def calculate_metrics(prediction_dir, max_try=5, max_sample=-1):
         gt = torch.load(f"{prediction_dir}/gt.pt")
         stimuli = torch.load(f"{prediction_dir}/stimuli.pt")
     
-    one_try_lenght = len(val_list) if max_sample == -1 else max_sample + 1
-    multiple_exp = [torch.stack(pred['exp'][i:i+one_try_lenght]) for i in range(0, len(pred['exp']), one_try_lenght)]
-    multiple_exp = torch.stack(multiple_exp).squeeze()
+    one_try_lenght = len(pred['exp']) // max_try
     
-    calculate_pain_metrics(
-        torch.stack(pred['exp'][:len(val_list) if max_sample == -1 else max_sample + 1]).squeeze().cpu()[..., :103],
-        multiple_exp.cpu()[..., :103],
-        torch.stack(gt['exp']).cpu()[..., :103],
-        torch.stack([torch.tensor(sample) for sample in pred['pspi']]).cpu(),
-        torch.stack(gt['pspi']).cpu(),
-        torch.stack(stimuli).cpu(),
+    print(f"one_try_lenght: {one_try_lenght}")
+    multiple_exp = [torch.stack(pred['exp'][i:i+one_try_lenght]) for i in range(0, len(pred['exp']), one_try_lenght)]
+    
+    multiple_exp = torch.stack(multiple_exp).squeeze()
+    # shape: (T, N, Seq-leng, D)
+
+    # Handle PSPI predictions - may only have single try
+    if len(pred['pspi']) > one_try_lenght:  # Multiple tries exist
+        multiple_pspi = [torch.tensor(pred['pspi'][i:i+one_try_lenght]) for i in range(0, len(pred['pspi']), one_try_lenght)]
+        multiple_pspi = torch.stack(multiple_pspi).squeeze()
+    else:  # Single try
+        multiple_pspi = torch.tensor(pred['pspi']).unsqueeze(0)
+    # shape: (T, N, Seq-leng) or (1, N, Seq-leng) for single try
+    
+    exp_gt_tensor = torch.stack(gt['exp']).cpu()  # shape: (N, Seq-leng, D)
+    pspi_gt_tensor = torch.stack(gt['pspi']).cpu() # shape: (N, Seq-leng)
+    stimuli_tensor = torch.stack(stimuli).cpu()    # shape: (N, Seq-leng)
+        
+    exp_gt_tensor = exp_gt_tensor[..., :103]
+    ensemble_exp = multiple_exp.cpu()[..., :103]
+    
+    metrics_per_try = []
+    
+    def compute_metrics_for_try(i, multiple_exp, ensemble_exp, exp_gt_tensor, multiple_pspi, pspi_gt_tensor, stimuli_tensor):
+        exp_pred_i = multiple_exp[i].cpu()[..., :103]
+        pspi_pred_i = multiple_pspi[min(i, len(multiple_pspi)-1)].cpu()  # Use min to handle single try case
+        return calculate_pain_metrics(
+            exp_pred_i,
+            ensemble_exp,
+            exp_gt_tensor,
+            pspi_pred_i,
+            pspi_gt_tensor,
+            stimuli_tensor
+        )
+
+    compute_fn = partial(
+        compute_metrics_for_try,
+        multiple_exp=multiple_exp,
+        ensemble_exp=ensemble_exp,
+        exp_gt_tensor=exp_gt_tensor,
+        multiple_pspi=multiple_pspi,
+        pspi_gt_tensor=pspi_gt_tensor,
+        stimuli_tensor=stimuli_tensor
     )
+
+    with ThreadPoolExecutor(max_workers=20) as executor:
+        metrics_per_try = list(executor.map(compute_fn, range(max_try)))
+        
+    metrics_array = np.array(metrics_per_try)
+    
+    metric_names = ["pain_dist", "pain_divrs", "pain_var", "pain_corr", "pain_sim", "pain_acc"]
+    for i, name in enumerate(metric_names):
+        m = metrics_array[:, i].mean()
+        v = metrics_array[:, i].var()
+        print(f"Metric {name}: mean = {m:.4f}, variance = {v:.4f}")
+        with open(f"{prediction_dir}/metrics.txt", "a") as f:
+            f.write(f"Metric {name}: mean = {m:.4f}, variance = {v:.4f}\n")
+            
+                
+    
+    
+    
 if __name__ == "__main__":
     
     import argparse 
+    from concurrent.futures import ProcessPoolExecutor
+    from functools import partial
+    from concurrent.futures import ThreadPoolExecutor
     
     parser = argparse.ArgumentParser()
     
@@ -166,7 +233,7 @@ if __name__ == "__main__":
     #     "/media/tien/SSD-NOT-OS/baseline_new/with_old_ind/",
     # "/media/tien/SSD-NOT-OS/pain_intermediate_data/eval_output",
     # "/media/tien/SSD-NOT-OS/pain_intermediate_data/ablation/without_diffusion_forcing",
-    "/media/tien/SSD-NOT-OS/pain_intermediate_data/ablation/context_window/2",
+    # "/media/tien/SSD-NOT-OS/pain_intermediate_data/ablation/context_window/2",
     "/media/tien/SSD-NOT-OS/pain_intermediate_data/ablation/context_window/4",
     "/media/tien/SSD-NOT-OS/pain_intermediate_data/ablation/context_window/8",
     "/media/tien/SSD-NOT-OS/pain_intermediate_data/ablation/df_uncertainty/0_5",
@@ -176,12 +243,19 @@ if __name__ == "__main__":
     "/media/tien/SSD-NOT-OS/pain_intermediate_data/ablation/guiding/1_1_1",
     "/media/tien/SSD-NOT-OS/pain_intermediate_data/ablation/guiding/1_2_4",
     "/media/tien/SSD-NOT-OS/pain_intermediate_data/ablation/guiding/05_1_2",
-    "/media/tien/SSD-NOT-OS/pain_intermediate_data/ablation/guiding/025_05_1"
+    "/media/tien/SSD-NOT-OS/pain_intermediate_data/ablation/guiding/025_05_1",
+    
+    # "/media/tien/SSD-NOT-OS/pain_intermediate_data/baseline_new/with_old_ind",
+    # "/media/tien/SSD-NOT-OS/pain_intermediate_data/eval_output_new",
+    # "/media/tien/SSD-NOT-OS/pain_intermediate_data/ablation/without_diffusion_forcing",
+    
     ]
     
     parser.add_argument("--max_try", type=int, default=5)
     
-    parser.add_argument("--max_sample", type=int, default=-1)
+    # parser.add_argument("--max_sample", type=int, default=-1)
+    parser.add_argument("--max_sample", type=int, default=100)
+    
     
     args = parser.parse_args()
     

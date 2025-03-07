@@ -9,6 +9,8 @@ from torch.nn import Module
 from torch.nn import functional as F
 from torch.optim import AdamW
 from tqdm import tqdm
+from huggingface_hub import PyTorchModelHubMixin
+
 from .diffusion import Diffusion
 
 from .module.utils.misc import exists, groupwise
@@ -20,8 +22,11 @@ from einops import rearrange, reduce, repeat
 
 from math import sqrt, log, expm1
 
+from .module.autoregressive_latent_unet import LatentUnet as FrameLatentUnet
+from .module.temporal_latent_unet import Unet1D as VideoLatentUnet
 
-class ControlEmbedding(nn.Module):
+
+class ControlEmbedding(nn.Module, PyTorchModelHubMixin):
     def __init__(
         self,
         emb_dim: int,
@@ -108,16 +113,86 @@ def generate_pyramid_scheduling_matrix(horizon: int, uncertainty_scale: float, s
 def full_sequence_scheduling_matrix(horizon: int, sampling_timesteps: int) -> np.ndarray:
     return torch.from_numpy(np.arange(sampling_timesteps, -1, -1)[:, None].repeat(horizon, axis=1))
 
-class ElucidatedDiffusion(Diffusion):
+
+
+class ElucidatedDiffusion(
+    Diffusion, 
+):
     """
     Denoising Diffusion Probabilistic Model as introduced in:
     "Elucidating the Design Space of Diffusion-Based Generative
     Models", Kerras et al. (2022) (https://arxiv.org/pdf/2206.00364)
     """
+    
+    def _save_pretrained(self, save_directory, **kwargs):
+        """Override the save_pretrained method to save the full model structure"""
+        import os
+        os.makedirs(save_directory, exist_ok=True)
+        
+        # Save the config information needed to rebuild the model
+        config_dict = self.conf
+        
+        # Save the state dict and config
+        torch.save({
+            'state_dict': self.state_dict(),
+            'config': config_dict
+        }, os.path.join(save_directory, "model.safetensors"))
+        
+        # Create a model card if one doesn't exist
+        model_card_path = os.path.join(save_directory, "README.md")
+        if not os.path.exists(model_card_path):
+            with open(model_card_path, "w") as f:
+                f.write(f"# PainDiffusion Model\n\n"
+                    f"This model generates facial expressions based on pain stimuli.\n\n"
+                    f"## Model Parameters\n\n"
+                    f"- Sigma min: {self.sigma_min}\n"
+                    f"- Sigma max: {self.sigma_max}\n"
+                    f"- ODE Solver: {self.ode_solver}\n"
+                    f"- Window size: {self.window_size}\n")
+        
+        return [os.path.join(save_directory, "model.safetensors")]
+
+    @classmethod
+    def _from_pretrained(cls, model_id, revision=None, cache_dir=None, force_download=False, 
+                        proxies=None, resume_download=False, local_files_only=False, 
+                        token=None, **kwargs):
+        """Override the from_pretrained method to load the full model structure"""
+        import os
+        from huggingface_hub import hf_hub_download
+        
+        # Download the model file from the hub if it's a remote path
+        try:
+            # Try to download from hub
+            cached_file = hf_hub_download(
+                repo_id=model_id,
+                filename="model.safetensors",
+                revision=revision,
+                cache_dir=cache_dir,
+                force_download=force_download,
+                proxies=proxies,
+                resume_download=resume_download,
+                use_auth_token=token,
+                local_files_only=local_files_only
+            )
+            
+            # Load the safetensors file
+            loaded = torch.load(cached_file)
+            
+            # Get the configuration
+            config = loaded['config']
+            
+            model = cls.from_conf(conf=config)
+            
+            # Load the state dict
+            model.load_state_dict(loaded['state_dict'])
+            
+            return model
+            
+        except Exception as e:
+            raise ValueError(f"Error loading model from {model_id}: {e}")
 
     def __init__(
         self,
-        model: Module = None,
         sigma_min: float = 0.002,
         sigma_max: float = 80,
         ode_solver: str = "heun_sde",
@@ -136,7 +211,6 @@ class ElucidatedDiffusion(Diffusion):
         **kwargs,
     ) -> None:
         super().__init__(
-            model,
             ode_solver=ode_solver,
             **kwargs,
         )
@@ -174,12 +248,24 @@ class ElucidatedDiffusion(Diffusion):
         self.ctrl_emb: Optional[nn.Module] = ControlEmbedding(
             emb_dim=128, in_dim=1, conf=self.conf['DATA_STATS']
         )
+        
+        net_par = self.conf['MODEL']
+        type = net_par.get('type')
+        if type == "frame":
+            net = FrameLatentUnet(**net_par)
+        elif type == "video":
+            net = VideoLatentUnet(**net_par)
+        self.model = net
+
 
         self.sample_output_dir = sample_output_dir
 
         self.save_hyperparameters(ignore=['model'])
 
         self.collect_xs = []
+        
+        self.count_forward = 0
+        
 
     @torch.no_grad()
     def follow(

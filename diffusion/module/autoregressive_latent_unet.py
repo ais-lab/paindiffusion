@@ -19,6 +19,9 @@ from .components.modules import (
     exists,
 )
 
+from huggingface_hub import PyTorchModelHubMixin
+
+
 
 # @dataclass
 # class UNet1DConfig:
@@ -65,7 +68,9 @@ from .components.modules import (
 # TODO: change to video latent unet
 
 
-class LatentUnet(nn.Module):
+class LatentUnet(nn.Module,
+                     PyTorchModelHubMixin,
+):
 
     def __init__(self, 
                  dim: int,
