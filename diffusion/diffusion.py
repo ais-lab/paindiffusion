@@ -7,6 +7,7 @@ from abc import abstractclassmethod
 from torch.nn.functional import l1_loss
 from torch.nn.functional import mse_loss
 from torchvision.utils import make_grid
+from huggingface_hub import PyTorchModelHubMixin
 
 from math import sqrt, log, expm1
 
@@ -33,7 +34,10 @@ from typing import Tuple, Callable, Dict, Optional, Union
 
 
 
-class Diffusion(LightningModule):
+class Diffusion(
+    LightningModule,
+    PyTorchModelHubMixin,
+):
     '''
         Implementation of a Denoising Diffusion Probabilistic Model (DDPM).
         This implementation follows a modular designed inspired by Karras et
@@ -42,35 +46,27 @@ class Diffusion(LightningModule):
     '''
 
     @classmethod
-    def from_conf(cls, path : str) -> 'Diffusion':
+    def from_conf(cls, path : str = None, conf = None) -> 'Diffusion':
         '''
             Initialize the Diffusion model from a YAML configuration file.
         '''
 
-        with open(path, 'r') as f:
-            conf = yaml.safe_load(f)
+        if conf is None:
+            with open(path, 'r') as f:
+                conf = yaml.safe_load(f)
 
         # Store the configuration file
         cls.conf = conf
 
-        net_par = conf['MODEL']
-        type = net_par.pop('type')
         dif_par = conf['DIFFUSION']
 
         # Grab the batch size for precise metric logging
         cls.batch_size = conf['DATASET']['batch_size']
 
-        # Initialize the network
-        if type == "frame":
-            net = FrameLatentUnet(**net_par)
-        elif type == "video":
-            net = VideoLatentUnet(**net_par)
-
-        return cls(net, **dif_par)
+        return cls(**dif_par)
     
     def __init__(
         self, 
-        model : nn.Module = None,
         img_size : int = 32,
         loss_type : str = 'L2',
         self_cond : bool = True,
@@ -85,13 +81,28 @@ class Diffusion(LightningModule):
         **kwargs
     ) -> None:
         super().__init__()
-
+            
+        # try conf is already loaded if not load from the parameter
+        try:
+            self.conf
+            print("Configuration already loaded")
+        except:
+            print("Loading configuration from parameter")
+            self.conf = conf
+            self.batch_size = conf['DATASET']['batch_size']
+            
+        net_par = self.conf['MODEL']
+        type = net_par.get('type')
+        if type == "frame":
+            net = FrameLatentUnet(**net_par)
+        elif type == "video":
+            net = VideoLatentUnet(**net_par)
+        self.model = net
+            
         assert ode_solver in ('ddim', 'dpm++', 'heun', 'heun_sde')
 
         if isinstance(img_size, int):
             img_size = (img_size, img_size)
-
-        self.model = model
 
         self.loss_type = loss_type
         self.self_cond = self_cond
@@ -115,13 +126,7 @@ class Diffusion(LightningModule):
 
         # self.save_hyperparameters(ignore=['model'])
         # self.logger.log_hyperparams(self.hparams)
-        
-        # try conf is already loaded if not load from the parameter
-        try:
-            self.conf
-        except:
-            self.conf = conf
-            self.batch_size = conf['DATASET']['batch_size']
+    
     
     @property
     def criterion(self) -> Callable:

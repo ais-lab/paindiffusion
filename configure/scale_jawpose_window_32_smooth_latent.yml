@@ -1,9 +1,8 @@
-BEST_CKPT: /media/tien/SSD-NOT-OS/pain_intermediate_data/experiment/scale_jawpose_window32_smooth_latent/checkpoint/elucidated_diffusion-epoch=13-val_loss=0.34.ckpt
-# BEST_CKPT: /media/tien/SSD-NOT-OS/pain_intermediate_data/experiment/scale_jawpose_window32/checkpoint/elucidated_diffusion-epoch=21-val_loss=0.34.ckpt
+BEST_CKPT: /media/tien/SSD-NOT-OS/pain_intermediate_data/experiment/scale_jawpose_window32_smooth_latent/checkpoint/elucidated_diffusion-epoch=05-val_loss=0.36.ckpt
 CHECKPOINT: /media/tien/SSD-NOT-OS/pain_intermediate_data/experiment/scale_jawpose_window32_smooth_latent/checkpoint
 CODEBACKUP: /media/tien/SSD-NOT-OS/pain_intermediate_data/experiment/scale_jawpose_window32_smooth_latent/code
 DATASET:
-  batch_size: 30
+  batch_size: 10
   img_size: 256
   is_video: true
   load_3d_latents: true
@@ -18,12 +17,12 @@ DATASET:
   path_to_3d_latents: /media/tien/SSD-NOT-OS/pain_intermediate_data/emoca_latent_code/
   path_to_frame_labels: /media/tien/SSD-NOT-OS/pain_intermediate_data/processed_pain_data_no_facedetector/
   path_to_video_frame: /media/tien/SSD-DATA/data/BioVid HeatPain DB/PartC/extracted_frame/
+  smooth_latent: true
   test_batch_size: 1
   test_max_length: 120
   train_shuffle: true
   val_batch_size: 1
   val_shuffle: false
-  smooth_latent: true
 DATA_STATS:
   emotion:
     mean: 4.6183
@@ -35,7 +34,7 @@ DATA_STATS:
     mean: 37.2281
     std: 7.0676
 DIFFUSION:
-  context_size: 4
+  context_size: 2
   ctrl_key: ctrl
   data_key: x
   drop_probs:
@@ -44,9 +43,9 @@ DIFFUSION:
   - 0.1
   frame_stack: 4
   guide:
-  - 0.25
   - 0.5
   - 1.0
+  - 2.0
   img_size: 11
   loss_type: L1
   ode_solver: dpm++
@@ -56,7 +55,6 @@ DIFFUSION:
   time_delta: 0.1
   warmup_steps: 1000
   window_size: 8
-  context_size: 2
 LAST_CKPT: /media/tien/SSD-NOT-OS/pain_intermediate_data/experiment/scale_jawpose_window32_smooth_latent/checkpoint/last-v1.ckpt
 MODEL:
   attn_dim_head: 32

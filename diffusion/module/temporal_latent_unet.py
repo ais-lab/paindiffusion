@@ -89,7 +89,8 @@ class Unet1D(Module):
         
         context_channels=4,
         context_dim=1,  
-        time_window=64
+        time_window=64,
+        *args, **kwargs
     ):
         super().__init__()
 

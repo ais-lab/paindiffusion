@@ -13,34 +13,19 @@ from diffusion.elucidated_for_video import ElucidatedDiffusion
 from diffusion.module.utils.biovid import BioVidDM
 from inferno_package.render_from_exp import decode_latent_to_image
 
-def load_model(conf_file) -> ElucidatedDiffusion:
 
-    with open(conf_file, "r") as f:
-        conf = yaml.safe_load(f)
+def load_from_hub(model_id="damtien440/paindiffusion", **kwargs):
 
-    best_checkpoint = conf["BEST_CKPT"]
-    
-    model = ElucidatedDiffusion.from_conf(conf_file)
-
-    trainer = Trainer(
-        max_epochs=100,
-        accelerator="gpu",
-        devices=1,
-        fast_dev_run=1,
-        logger=False,
-    )
-
-    biovid = BioVidDM.from_conf(conf_file)
-    biovid.test_max_length = 64
-    trainer.test(model, datamodule=biovid, ckpt_path=best_checkpoint)
-
+    # Create a new model instance with the saved configuration
+    model = ElucidatedDiffusion._from_pretrained(model_id)
     model = model.eval()
     model = model.cuda()
     
     return model
 
 # model = load_model("configure/sample_config.yml")
-model = load_model("configure/scale_jawpose_window_32.yml")
+model = load_from_hub()
+
 default_face = 'default_face/'
 
 # Initialize shared variables
