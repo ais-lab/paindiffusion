@@ -46,7 +46,7 @@ bash download_assets.sh
 
 Thanks to the Hugging Face Model Hub, you can run PainDiffusion with a single command.
 
-[PainDiffusion Demo Video](static/gradio_demo.webm)
+https://github.com/user-attachments/assets/1f5f7a5e-fcaf-4cde-8e5d-01e89d36c230
 
 1. Run the Demo
    ```bash
@@ -59,7 +59,7 @@ Thanks to the Hugging Face Model Hub, you can run PainDiffusion with a single co
 
 For a better realistic avatar, we use PainDiffusion to drive [Gaussian Avatars](https://github.com/ShenhanQian/GaussianAvatars/tree/669ee0e428e6dbfa552c63d75df53234c42cfbbd). Follow the step in [this repository](https://github.com/ais-lab/gaussiansp-paindiffusion) to do that.
 
-[drive gaussian avatars](static/drive_gaussianavatars.webm)
+https://github.com/user-attachments/assets/fafd7913-9ee5-4b55-b506-008ffca51385
 
 ---
 
