@@ -1,4 +1,4 @@
-from random import random
+from random import random, choice
 import numpy as np
 import tyro
 from dataclasses import dataclass, field
@@ -122,7 +122,6 @@ class FlowMatchingModule(LightningModule):
     def flow_step(self, x_t, t_start, t_end, ctrl):
         
         # t_start = enlarge_as(t_start, x_t)
-        
         dt = t_end - t_start
         half_dt = dt / 2
         
@@ -136,55 +135,65 @@ class FlowMatchingModule(LightningModule):
         # Final position
         return x_t + enlarge_as(dt, v2) * v2
     
-    def sample_imgs(self, batch, save=False, n_steps=8):
+    def sample_imgs(self, batch, save=False, n_steps=4):
         x_0, ctrl, mask_weight = self.prepare_batch(batch)
         
         window_size = 16
         context = 4
-        
-        x = torch.randn_like(x_0, device=self.device)
-        time_steps = torch.linspace(0, 1.0, n_steps+1, device=self.device)
 
-        # print(f"x.shape: {x.shape}")
+        time_steps = torch.linspace(0, 1.0, n_steps+1, device=self.device)
         
-        for window_address in range(0, x_0.shape[1], window_size):
-            # print(f"window_address: {window_address}")
+        video_length = x_0.shape[1]
+        curr_frame = 0
+        chunk_size = window_size - context
+        
+        x_preds = None
+        
+        while curr_frame < video_length:
+
+            if chunk_size > 0:
+                horizon = min(chunk_size, video_length - curr_frame)
+            else:
+                horizon = video_length - curr_frame
             
-            start = max(0, window_address - context)
-            end = min(x_0.shape[1], window_address + window_size)
-            
-            window_x = x[:, start:end]
-            window_ctrl = [ctrl[i][:, start:end] for i in range(len(ctrl))]
-            
-            with_context = window_address - context >= 0
+            with_context = curr_frame >= context
             
             window_scheduling_matrix = generate_pyramid_scheduling_matrix(
-                horizon=window_size,
+                horizon=horizon,
                 uncertainty_scale=1,
                 sampling_timesteps=n_steps
             )
             
             # flip the scheduling matrix
             window_scheduling_matrix = torch.flip(window_scheduling_matrix, [0, 1])
+            
+            start_frame = max(0, curr_frame + horizon - window_size)
+            end_frame = min(video_length, curr_frame + horizon)
+                        
+            window_x = torch.randn(
+                (x_0.shape[0], horizon, self.frame_stack, 128), 
+                device=self.device,
+                )
+            
+            if exists(x_preds):
+                window_x = torch.cat((x_preds[:,start_frame:], window_x), dim=1)
+            
+            window_ctrl = [ctrl[i][:, start_frame:end_frame] for i in range(len(ctrl))] if exists(ctrl) else None
+
+            current_context_size = end_frame - start_frame - horizon
         
-            window_x = self.sample_a_chunk(window_scheduling_matrix, window_x, window_ctrl, time_steps, with_context, context_size=context)
+            window_x = self.sample_a_chunk(window_scheduling_matrix, window_x, window_ctrl, time_steps, with_context, context_size=current_context_size)
         
-            if with_context:
-                x[:, window_address:window_address+window_size] = window_x[:, context:window_size+context]
-            else:
-                x[:, window_address:window_address+window_size] = window_x[:, :window_size]
+            x_preds = torch.cat((x_preds, window_x[:, -horizon:]), dim=1) if exists(x_preds) else window_x
+            
+            curr_frame += horizon 
         
-        x[..., :3] /= 100
+        x_preds[..., :3] /= 100
         
-        x = rearrange(x, "b t fs d -> b (t fs) d")
-        
-        # apply bilateral filter on x
-        x = bilateral_filter(x.cpu().numpy(), 5, sigma_color=0.1, sigma_space=0.1)
-        
-        x = torch.from_numpy(x)
-        
+        x_preds = rearrange(x_preds, "b t fs d -> b (t fs) d")
+
         saved_object = {
-            'x' : x,
+            'x' : x_preds,
             'ctrl' : ctrl,
             "start_frame_id":batch['start_frame_id'],
             "end_frame_id":batch['end_frame_id'],
@@ -203,18 +212,13 @@ class FlowMatchingModule(LightningModule):
 
     def sample_a_chunk(self, scheduling_matrix, window_x, window_ctrl, time_steps, with_context, context_size):
         
-        small_noise = 0.005
-        
-        if with_context:
-            context_current_noise = torch.ones(context_size, device=self.device) * small_noise
-            context_next_noise = torch.ones(context_size, device=self.device) * small_noise
+        sigma = [1e-4, 2e-4]
         
         for m in range(scheduling_matrix.shape[0]-1):
 
             current_noise = scheduling_matrix[m]
 
             if m == scheduling_matrix.shape[0]-1:
-                print("last step", m)
                 next_noise = torch.ones(scheduling_matrix[m].shape, device=self.device) * (len(time_steps) - 1)
             else:
                 next_noise = scheduling_matrix[m+1]
@@ -224,15 +228,15 @@ class FlowMatchingModule(LightningModule):
             
             # add little noise to the context frames
             if with_context:
+                context_current_noise = torch.ones(context_size, device=self.device) - choice(sigma)
+                context_next_noise = torch.ones(context_size, device=self.device) - choice(sigma)
                 current_noise = torch.cat((context_current_noise, current_noise), dim=0).to(window_x.device)
                 next_noise = torch.cat((context_next_noise, next_noise), dim=0).to(window_x.device)
                 
             # add batch dimension
             current_noise = repeat(current_noise, "t -> b t", b=window_x.shape[0])
             next_noise = repeat(next_noise, "t -> b t", b=window_x.shape[0])
-            
-            print(f"current_noise: {current_noise[0]}, next_noise: {next_noise[0]}")
-            
+                        
             window_x = self.flow_step(x_t=window_x, t_start=current_noise, t_end=next_noise, ctrl=window_ctrl)
         return window_x
     
@@ -329,7 +333,7 @@ def main(config: TrainingConfig):
         enable_checkpointing=True,
         callbacks=callbacks,
         check_val_every_n_epoch=1,
-        fast_dev_run=50 if config.fast_check else False,
+        fast_dev_run=5 if config.fast_check else False,
     )
 
     # Training/validation/testing flow
