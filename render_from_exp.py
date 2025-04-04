@@ -125,7 +125,7 @@ if __name__ == "__main__":
     from argparse import ArgumentParser
     
     parser = ArgumentParser()
-    parser.add_argument("--input_path", type=str, required=True)
+    parser.add_argument("--input_path", type=str, required=False, default="input/")
     parser.add_argument("--defaut_face_path", type=str, required=False, default=defaut_face_path)
     parser.add_argument("--output_dir", type=str, required=True)
     parser.add_argument("--video_render", type=bool, required=False, default=False)

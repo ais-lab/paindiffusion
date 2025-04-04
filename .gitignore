@@ -4,6 +4,8 @@ inferno_package/
 preprocess/MEGraphAU
 assets/
 wandb
+/samples/
+checkpoints/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
