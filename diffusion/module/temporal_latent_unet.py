@@ -301,11 +301,10 @@ class Unet1D(Module):
         if not exists(ctrl):
             return self(*args, **kwargs)
         
-        num_controll = 3
+        num_control = 3
         batch_size = ctrl.shape[1]
         
-        assert len(guide) == num_controll
-        
+        assert len(guide) == num_control
         original_ctrl = ctrl.clone()
         
         sum_scale = sum(guide)
