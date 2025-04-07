@@ -323,14 +323,14 @@ class Unet1D(Module):
 
         ctrl = torch.cat(null_ctrl, dim=0) # ((num_controll+1)*batch, len, dim)
         
-        new_args = [input.clone().repeat_interleave(num_controll+1, dim=0) if len(input.shape)>1 else input for input in args]
+        new_args = [input.clone().repeat_interleave(num_control+1, dim=0) if len(input.shape)>1 else input for input in args]
 
         preds = self(*new_args, ctrl = ctrl, **kwargs)
         
         cond = preds[:batch_size]
         
         null = torch.zeros_like(cond)
-        for idx in range(1, num_controll+1):
+        for idx in range(1, num_control+1):
             sub_null = preds[idx*batch_size:(idx+1)*batch_size] * guide[idx-1]
             null += sub_null
 
