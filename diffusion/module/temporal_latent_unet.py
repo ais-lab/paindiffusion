@@ -93,6 +93,8 @@ class Unet1D(Module):
         *args, **kwargs
     ):
         super().__init__()
+        
+        self.null_ctrl = lambda ctrl : torch.zeros_like(ctrl)
 
         # determine dimensions
         
@@ -286,7 +288,55 @@ class Unet1D(Module):
         
         x = rearrange(x, '(b t) c d -> b t c d', b=b)
         return x
+    
+    def classifier_free_guidance(
+        self,
+        *args,
+        ctrl = None,
+        guide: list = [
+            1.0,
+        ],
+        **kwargs,
+    ):
+        if not exists(ctrl):
+            return self(*args, **kwargs)
+        
+        num_control = 3
+        batch_size = ctrl.shape[1]
+        
+        assert len(guide) == num_control
+        original_ctrl = ctrl.clone()
+        
+        sum_scale = sum(guide)
+        
+        null_ctrl = [rearrange(original_ctrl.clone(), "c b l fs d -> b l (fs c) d").contiguous()]
+        for idx, control_signal in enumerate(original_ctrl):
+            _null_ctrl = self.null_ctrl(control_signal)
 
+            with_null_ctrl = original_ctrl.clone()
+            with_null_ctrl[idx] = _null_ctrl
+
+            # bring the controll signal back to the back to pass to the model
+            with_null_ctrl = rearrange(with_null_ctrl, "c b l fs d -> b l (fs c) d").contiguous()
+
+            null_ctrl.append(with_null_ctrl)
+
+        ctrl = torch.cat(null_ctrl, dim=0) # ((num_controll+1)*batch, len, dim)
+        
+        new_args = [input.clone().repeat_interleave(num_control+1, dim=0) if len(input.shape)>1 else input for input in args]
+
+        preds = self(*new_args, ctrl = ctrl, **kwargs)
+        
+        cond = preds[:batch_size]
+        
+        null = torch.zeros_like(cond)
+        for idx in range(1, num_control+1):
+            sub_null = preds[idx*batch_size:(idx+1)*batch_size] * guide[idx-1]
+            null += sub_null
+
+        output = (1 + sum_scale) * cond - null
+        return output
+        
 
 if __name__ == "__main__":
     
