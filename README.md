@@ -22,10 +22,16 @@ Install [Inferno](https://github.com/radekd91/inferno) for the EMOCA decoder. Fo
 conda create python=3.10 -n paindiff 
 conda activate paindiff
 
+pip install -r requirements.txt
+
+
 # Install the required packages and pytorch3d
 # Ensure the CUDA version matches your PyTorch installation and system configuration: https://pytorch.org/get-started/locally/
 
-pip install -r requirements.txt
+conda install -c "nvidia/label/cuda-12.1.1" cuda-toolkit ninja cmake  # use the right CUDA version that you saw when run the requirement installation
+ln -s "$CONDA_PREFIX/lib" "$CONDA_PREFIX/lib64"  # to avoid error "/usr/bin/ld: cannot find -lcudart"
+conda env config vars set CUDA_HOME=$CONDA_PREFIX  # for compilation
+
 
 FORCE_CUDA=1 pip install git+https://github.com/facebookresearch/pytorch3d.git@stable
 
