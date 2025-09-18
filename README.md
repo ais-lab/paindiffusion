@@ -11,11 +11,13 @@ Due to the privacy policies of the BioVid Database, we can only release the chec
 ## Installation
 
 ### Prerequisites
-Install [Inferno](https://github.com/radekd91/inferno) for the EMOCA decoder. Follow the instructions [here](https://github.com/damtien444/inferno?tab=readme-ov-file#installation) and download the necessary models for facial reconstruction [here](https://github.com/damtien444/inferno?tab=readme-ov-file#installation). We have slightly modified the original code to generate useful latent variables for the face reconstruction app and to support the `render_from_exp.py` script.
+Install [Inferno](https://github.com/radekd91/inferno) for the EMOCA decoder. Follow the instructions [here](https://github.com/damtien444/inferno?tab=readme-ov-file#installation) and download the necessary models for facial reconstruction [here](https://github.com/damtien444/inferno?tab=readme-ov-file#installation). We have slightly modified the original code to generate useful latent variables for the face reconstruction app and to support the `render_from_exp.py` script. 
+
+**You can simply follow the instructions below**
 
 **Note:**  Installing `pytorch3d` might present compatibility issues due to mismatched versions of CUDA, PyTorch, and `pytorch3d`. If this occurs, install `pytorch3d` separately.
 
-### Setup
+### Instructions
 
 ```bash
 # Create and activate a new Conda environment
@@ -24,14 +26,12 @@ conda activate paindiff
 
 pip install -r requirements.txt
 
-
 # Install the required packages and pytorch3d
 # Ensure the CUDA version matches your PyTorch installation and system configuration: https://pytorch.org/get-started/locally/
 
 conda install -c "nvidia/label/cuda-12.1.1" cuda-toolkit ninja cmake  # use the right CUDA version that you saw when run the requirement installation
 ln -s "$CONDA_PREFIX/lib" "$CONDA_PREFIX/lib64"  # to avoid error "/usr/bin/ld: cannot find -lcudart"
 conda env config vars set CUDA_HOME=$CONDA_PREFIX  # for compilation
-
 
 FORCE_CUDA=1 pip install git+https://github.com/facebookresearch/pytorch3d.git@stable
 
@@ -71,7 +71,7 @@ https://github.com/user-attachments/assets/fafd7913-9ee5-4b55-b506-008ffca51385
 
 ## Acknowledgments
 
-We thank the previous author for their opensource code. This project is heavily based on the excellent implementations of diffusion models from:  
+We thank the previous author for their open-source code. This project is heavily based on the excellent implementations of diffusion models from:  
 - [**modular-diffusion**](https://github.com/myscience/modular-diffusion)  
 - [**denoising-diffusion-pytorch**](https://github.com/lucidrains/denoising-diffusion-pytorch)  
 - [**k-diffusion**](https://github.com/crowsonkb/k-diffusion)  
