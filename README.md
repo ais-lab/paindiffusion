@@ -33,7 +33,7 @@
 
 ## Introduction
 
-We introduce a generative model intended for robotic facial expression. It can generate expressions according to a signal of pain stimuli, continuously, without divergence. You can install and run it easily with the [instructions](###Instructions) provided here.
+We introduce a generative model intended for robotic facial expression. It can generate expressions according to a signal of pain stimuli, continuously, without divergence. You can install and run it easily with the [instructions](###instructions) provided here.
 
 Q&A:
 
