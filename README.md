@@ -31,7 +31,16 @@
 
 </div>
 
-Due to the privacy policies of the BioVid Database, we can only release the checkpoints, training code, and inference code. To minimize our effort, we are releasing the training and preprocessing code *as is* for reference purposes. We have only tested and verified the inference code, which includes a Gradio-based demo.
+## Introduction
+
+We introduce a generative model intended for robotic facial expression. It can generate expressions according to a signal of pain stimuli, continuously, without divergence. You can install and run it easily with the [instructions](###Instructions) provided here.
+
+Q&A:
+
+- Is it big? -> It is small (5.4M parameters).
+- How can we know it is not divergent? -> We let it run indefinitely. We compute metrics on longer sequences (on the test set).
+
+Code release: Due to the privacy policies of the BioVid Database, we can only release the checkpoints, training code, and inference code. To minimize our effort, we are releasing the training and preprocessing code *as is* for reference purposes. We have only tested and verified the inference code, which includes a Gradio-based demo.
 
 ## Installation
 
