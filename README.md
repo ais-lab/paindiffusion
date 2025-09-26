@@ -54,7 +54,7 @@ conda install -c "nvidia/label/cuda-12.1.1" cuda-toolkit ninja cmake  # use the 
 ln -s "$CONDA_PREFIX/lib" "$CONDA_PREFIX/lib64"  # to avoid error "/usr/bin/ld: cannot find -lcudart"
 conda env config vars set CUDA_HOME=$CONDA_PREFIX  # for compilation
 
-# Eeactivate the environment for new env config
+# Reactivate the environment for new env config
 conda deactivate
 conda activate paindiff
 
@@ -89,7 +89,7 @@ https://github.com/user-attachments/assets/1f5f7a5e-fcaf-4cde-8e5d-01e89d36c230
 
 ## Driving GaussianAvatars
 
-For a better realistic avatar, we use PainDiffusion to drive [Gaussian Avatars](https://github.com/ShenhanQian/GaussianAvatars/tree/669ee0e428e6dbfa552c63d75df53234c42cfbbd). Follow the step in [this repository](https://github.com/ais-lab/gaussiansp-paindiffusion) to do that.
+For a better, realistic avatar, we use PainDiffusion to drive [Gaussian Avatars](https://github.com/ShenhanQian/GaussianAvatars/tree/669ee0e428e6dbfa552c63d75df53234c42cfbbd). Follow the steps in [this repository](https://github.com/ais-lab/gaussiansp-paindiffusion) to do that.
 
 https://github.com/user-attachments/assets/fafd7913-9ee5-4b55-b506-008ffca51385
 
