@@ -46,28 +46,33 @@ Install [Inferno](https://github.com/radekd91/inferno) for the EMOCA decoder. Fo
 # Create and activate a new Conda environment
 conda create python=3.10 -n paindiff 
 conda activate paindiff
-
 pip install -r requirements.txt
 
 # Install the required packages and pytorch3d
 # Ensure the CUDA version matches your PyTorch installation and system configuration: https://pytorch.org/get-started/locally/
-
 conda install -c "nvidia/label/cuda-12.1.1" cuda-toolkit ninja cmake  # use the right CUDA version that you saw when run the requirement installation
 ln -s "$CONDA_PREFIX/lib" "$CONDA_PREFIX/lib64"  # to avoid error "/usr/bin/ld: cannot find -lcudart"
 conda env config vars set CUDA_HOME=$CONDA_PREFIX  # for compilation
 
+# Eeactivate the environment for new env config
+conda deactivate
+conda activate paindiff
+
+# Install pytorch3d with cuda support
 FORCE_CUDA=1 pip install git+https://github.com/facebookresearch/pytorch3d.git@stable
 
 # Clone and set up the Inferno package
 git clone https://github.com/damtien444/inferno inferno_package
 cd inferno_package/
 bash pull_submodules.sh
-
 pip install -e .
 
 # Download the pretrained EMOCA model for PainDiffusion
 cd inferno_apps/FaceReconstruction
 bash download_assets.sh
+
+# Return to the repo's root dir
+cd ../../..
 ```
 
 
