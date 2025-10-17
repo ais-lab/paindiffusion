@@ -124,3 +124,10 @@ We thank the previous author for their open-source code. This project is heavily
 }
 
 ```
+
+## Work in progress: Pain Expression Editing Software
+
+Pain facial expression is not an easy data to collect. To provide an easier way to augment data of pain expression, the following project aims to edit the existing expression sequence to follow the desired characteristic through textual or acting video guidance. Please see the current internal demo of the software:
+
+https://github.com/user-attachments/assets/7113a75f-e19e-4261-9330-b93a92c844f5
+
