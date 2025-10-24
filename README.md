@@ -2,7 +2,7 @@
 
 # PainDiffusion: Learning to Express Pain
 <p>
-🦾🔥 IROS 2025 Best Paper Award Finalist 🦾🔥
+🦾🔥 IROS 2025 Best Entertainment and Amusement Paper Award 🦾🔥
 </p>
 <!-- Badges -->
 <p>
@@ -130,4 +130,13 @@ We thank the previous author for their open-source code. This project is heavily
 Pain facial expression is not an easy data to collect. To provide an easier way to augment data of pain expression, the following project aims to edit the existing expression sequence to follow the desired characteristic through textual or acting video guidance. Please see the current internal demo of the software:
 
 https://github.com/user-attachments/assets/7113a75f-e19e-4261-9330-b93a92c844f5
+
+## IROS 2025 Best Entertainment and Amusement Paper Award
+
+We are honored to be nominated as the Best Paper Award Finalist (40/1991 ~ top 2%).
+
+We are delighted that the paper _won_ the **IROS Best Entertainment and Amusement Paper Award**. This is an award in the emotional, entertainment, and social robotics category at IROS 2025, with 5 finalists within its scope.
+<div align="center">
+<img src="https://github.com/user-attachments/assets/34400ae2-6cb0-47af-9080-1df27279b93f" alt="Certificate of IROS Best Entertainment and Amusement Paper Award for PainDiffusion paper" width="50%">
+</div>
 
